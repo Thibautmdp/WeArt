@@ -6,6 +6,23 @@
 
 {% block content %}
 <div class="page">
+
+  {% if not current_user.is_authenticated and not search_query %}
+  <div style="background:linear-gradient(135deg,rgba(201,169,110,.12),rgba(201,169,110,.04));border:1px solid rgba(201,169,110,.25);border-radius:var(--radius);padding:36px 40px;margin-bottom:36px;text-align:center;">
+    <h2 style="font-size:1.8rem;font-weight:800;margin-bottom:12px;">Bienvenue sur <span style="color:var(--accent);">WeArt</span></h2>
+    <p style="color:var(--text2);font-size:1rem;max-width:600px;margin:0 auto 20px;line-height:1.7;">
+      WeArt est une plateforme pensée pour les artistes qui veulent <strong style="color:var(--text);">partager leur travail</strong>,
+      <strong style="color:var(--text);">se connecter avec d'autres créateurs</strong> et
+      <strong style="color:var(--text);">construire une communauté</strong> autour de leur art.
+      Expose tes œuvres, découvre des talents, collabore et grandis ensemble.
+    </p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <a href="{{ url_for('register') }}" class="btn btn-primary" style="padding:11px 28px;font-size:.95rem;">Rejoindre la communauté</a>
+      <a href="{{ url_for('login') }}" class="btn btn-ghost" style="padding:11px 28px;font-size:.95rem;">Se connecter</a>
+    </div>
+  </div>
+  {% endif %}
+
   <h1 class="section-title">
     {% if search_query %}
       Résultats pour "<span>{{ search_query }}</span>"
