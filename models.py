@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -40,6 +40,8 @@ class User(UserMixin, db.Model):
     cv_experiences = db.Column(db.Text)
     cv_awards = db.Column(db.Text)
     cv_skills = db.Column(db.Text)
+    ai_generations_today = db.Column(db.Integer, default=0)
+    ai_last_reset = db.Column(db.Date, nullable=True)
 
     artworks = db.relationship('Artwork', backref='artist', lazy='dynamic', cascade='all, delete-orphan')
     sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender', lazy='dynamic')
@@ -63,6 +65,22 @@ class User(UserMixin, db.Model):
 
     def get_name(self):
         return self.display_name or self.username
+
+    AI_DAILY_LIMIT = 5
+
+    def can_generate_ai(self):
+        today = date.today()
+        if self.ai_last_reset != today:
+            self.ai_generations_today = 0
+            self.ai_last_reset = today
+        return self.ai_generations_today < self.AI_DAILY_LIMIT
+
+    def increment_ai_generation(self):
+        today = date.today()
+        if self.ai_last_reset != today:
+            self.ai_generations_today = 0
+            self.ai_last_reset = today
+        self.ai_generations_today += 1
 
 
 class Artwork(db.Model):

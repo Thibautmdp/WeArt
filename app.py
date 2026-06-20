@@ -578,6 +578,9 @@ def ai_generate():
     if not prompt:
         return jsonify({'error': 'Prompt vide'}), 400
 
+    if not current_user.can_generate_ai():
+        return jsonify({'error': f'Tu as atteint ta limite de {current_user.AI_DAILY_LIMIT} générations par jour. Reviens demain !'}), 429
+
     hf_key = app.config.get('HF_API_KEY', '')
     filename = None
 
@@ -597,6 +600,9 @@ def ai_generate():
 
     if not filename:
         return jsonify({'error': 'Génération échouée. Réessaie dans quelques secondes.'}), 500
+
+    current_user.increment_ai_generation()
+    db.session.commit()
 
     subfolder = 'audio' if gen_type == 'music' else 'originals'
     token = make_media_token(filename)
