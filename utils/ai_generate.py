@@ -25,9 +25,10 @@ def generate_image_pollinations(prompt, width=768, height=768):
 
 
 def generate_image_hf(prompt, api_key):
-    """Generate image via Hugging Face Inference API (Stable Diffusion XL)."""
+    """Generate image via Hugging Face Inference API (Stable Diffusion XL).
+    Returns (filename, error_type) where error_type is None, 'rate_limit', or 'error'."""
     if not api_key:
-        return None
+        return None, None
     API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
     headers = {"Authorization": f"Bearer {api_key}"}
     payload = {"inputs": prompt, "parameters": {"width": 768, "height": 768, "num_inference_steps": 30}}
@@ -39,17 +40,20 @@ def generate_image_hf(prompt, api_key):
             filepath = os.path.join(UPLOAD_FOLDER, 'originals', filename)
             with open(filepath, 'wb') as f:
                 f.write(resp.content)
-            return filename
+            return filename, None
+        if resp.status_code == 429:
+            return None, 'rate_limit'
         print(f"HF image error {resp.status_code}: {resp.text[:200]}")
     except Exception as e:
         print(f"HF image exception: {e}")
-    return None
+    return None, 'error'
 
 
 def generate_music_hf(prompt, api_key):
-    """Generate music via Hugging Face MusicGen."""
+    """Generate music via Hugging Face MusicGen.
+    Returns (filename, error_type) where error_type is None, 'rate_limit', or 'error'."""
     if not api_key:
-        return None
+        return None, None
     API_URL = "https://api-inference.huggingface.co/models/facebook/musicgen-small"
     headers = {"Authorization": f"Bearer {api_key}"}
     payload = {"inputs": prompt}
@@ -61,8 +65,10 @@ def generate_music_hf(prompt, api_key):
             filepath = os.path.join(UPLOAD_FOLDER, 'audio', filename)
             with open(filepath, 'wb') as f:
                 f.write(resp.content)
-            return filename
+            return filename, None
+        if resp.status_code == 429:
+            return None, 'rate_limit'
         print(f"HF music error {resp.status_code}: {resp.text[:200]}")
     except Exception as e:
         print(f"HF music exception: {e}")
-    return None
+    return None, 'error'

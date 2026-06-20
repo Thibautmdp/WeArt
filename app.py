@@ -584,10 +584,14 @@ def ai_generate():
     if gen_type == 'image':
         filename = generate_image_pollinations(prompt)
         if not filename and hf_key:
-            filename = generate_image_hf(prompt, hf_key)
+            filename, hf_error = generate_image_hf(prompt, hf_key)
+            if hf_error == 'rate_limit':
+                return jsonify({'error': 'Le service IA est temporairement surchargé. Réessaie dans 1 à 2 minutes.'}), 429
     elif gen_type == 'music':
         if hf_key:
-            filename = generate_music_hf(prompt, hf_key)
+            filename, hf_error = generate_music_hf(prompt, hf_key)
+            if hf_error == 'rate_limit':
+                return jsonify({'error': 'Le service IA est temporairement surchargé. Réessaie dans 1 à 2 minutes.'}), 429
         else:
             return jsonify({'error': 'Configure ta clé Hugging Face dans .env pour générer de la musique.'}), 400
 
