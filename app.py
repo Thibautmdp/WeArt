@@ -1005,6 +1005,18 @@ def api_search_suggestions():
 
 with app.app_context():
     db.create_all()
+    # Migration : ajoute les nouvelles colonnes si elles n'existent pas encore
+    from sqlalchemy import text, inspect as sa_inspect
+    try:
+        inspector = sa_inspect(db.engine)
+        existing = {col['name'] for col in inspector.get_columns('user')}
+        with db.engine.begin() as conn:
+            if 'ai_generations_today' not in existing:
+                conn.execute(text('ALTER TABLE "user" ADD COLUMN ai_generations_today INTEGER DEFAULT 0'))
+            if 'ai_last_reset' not in existing:
+                conn.execute(text('ALTER TABLE "user" ADD COLUMN ai_last_reset DATE'))
+    except Exception:
+        pass
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False, threaded=True)
