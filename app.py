@@ -8,6 +8,11 @@ import secrets
 import mimetypes
 import stripe
 import boto3
+try:
+    import cloudinary
+    import cloudinary.uploader
+except ImportError:
+    cloudinary = None
 from flask import (Flask, render_template, redirect, url_for, request,
                    flash, jsonify, send_from_directory, abort, session, Response, stream_with_context)
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -34,6 +39,30 @@ def get_r2():
             region_name='auto',
         )
     return _r2
+
+
+def use_cloudinary():
+    return bool(cloudinary and app.config.get('CLOUDINARY_CLOUD_NAME'))
+
+
+def cloudinary_upload_file(local_path, subfolder, filename):
+    if not use_cloudinary():
+        return
+    cloudinary.config(
+        cloud_name=app.config['CLOUDINARY_CLOUD_NAME'],
+        api_key=app.config['CLOUDINARY_API_KEY'],
+        api_secret=app.config['CLOUDINARY_API_SECRET'],
+        secure=True
+    )
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+    resource_type = 'video' if ext in (app.config['ALLOWED_AUDIO_EXT'] | app.config['ALLOWED_VIDEO_EXT']) else 'image'
+    name_no_ext = filename.rsplit('.', 1)[0] if '.' in filename else filename
+    cloudinary.uploader.upload(
+        local_path,
+        public_id=f"weart/{subfolder}/{name_no_ext}",
+        resource_type=resource_type,
+        overwrite=True
+    )
 
 db.init_app(app)
 login_manager = LoginManager(app)
@@ -65,28 +94,30 @@ def save_upload(file, subfolder):
     filename = secure_filename(file.filename)
     ext = filename.rsplit('.', 1)[-1].lower()
     unique_name = f"{uuid.uuid4().hex}.{ext}"
-    r2 = get_r2()
-    if r2:
+    dest = os.path.join(UPLOAD_FOLDER, subfolder, unique_name)
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    file.save(dest)
+    if use_cloudinary():
+        cloudinary_upload_file(dest, subfolder, unique_name)
+    elif get_r2():
         mime = mimetypes.guess_type(unique_name)[0] or 'application/octet-stream'
-        r2.upload_fileobj(file, app.config['R2_BUCKET_NAME'],
-                          f"{subfolder}/{unique_name}",
-                          ExtraArgs={'ContentType': mime})
-    else:
-        dest = os.path.join(UPLOAD_FOLDER, subfolder, unique_name)
-        os.makedirs(os.path.dirname(dest), exist_ok=True)
-        file.save(dest)
+        with open(dest, 'rb') as f:
+            get_r2().upload_fileobj(f, app.config['R2_BUCKET_NAME'],
+                                    f"{subfolder}/{unique_name}",
+                                    ExtraArgs={'ContentType': mime})
     return unique_name
 
 
 def save_upload_path(local_path, subfolder, unique_name):
-    """Upload un fichier déjà sauvegardé localement vers R2."""
-    r2 = get_r2()
-    if r2:
+    """Upload un fichier déjà sauvegardé localement vers le cloud."""
+    if use_cloudinary():
+        cloudinary_upload_file(local_path, subfolder, unique_name)
+    elif get_r2():
         mime = mimetypes.guess_type(unique_name)[0] or 'application/octet-stream'
         with open(local_path, 'rb') as f:
-            r2.upload_fileobj(f, app.config['R2_BUCKET_NAME'],
-                              f"{subfolder}/{unique_name}",
-                              ExtraArgs={'ContentType': mime})
+            get_r2().upload_fileobj(f, app.config['R2_BUCKET_NAME'],
+                                    f"{subfolder}/{unique_name}",
+                                    ExtraArgs={'ContentType': mime})
 
 
 def make_media_token(filename):
@@ -629,13 +660,21 @@ def ai_save():
         orig_path = os.path.join(UPLOAD_FOLDER, 'originals', filename)
         wm_name = f"wm_{filename}"
         wm_path = os.path.join(UPLOAD_FOLDER, 'watermarked', wm_name)
+        th_name = f"th_{filename}"
+        th_path = os.path.join(UPLOAD_FOLDER, 'thumbnails', th_name)
+        os.makedirs(os.path.dirname(wm_path), exist_ok=True)
+        os.makedirs(os.path.dirname(th_path), exist_ok=True)
         apply_watermark(orig_path, wm_path, current_user.get_name())
+        generate_thumbnail(orig_path, th_path)
+        save_upload_path(orig_path, 'originals', filename)
+        save_upload_path(wm_path, 'watermarked', wm_name)
+        save_upload_path(th_path, 'thumbnails', th_name)
         artwork.watermarked_path = wm_name
         artwork.file_path = filename
-        th_name = f"th_{filename}"
-        generate_thumbnail(orig_path, os.path.join(UPLOAD_FOLDER, 'thumbnails', th_name))
         artwork.thumbnail_path = th_name
     elif subfolder == 'audio':
+        audio_path = os.path.join(UPLOAD_FOLDER, 'audio', filename)
+        save_upload_path(audio_path, 'audio', filename)
         artwork.file_path = filename
 
     db.session.add(artwork)
@@ -650,7 +689,15 @@ def serve_media(subfolder, token, filename):
     if not verify_media_token(filename, token):
         abort(403)
 
-    # En production : redirection vers l'URL publique Cloudflare R2
+    # Cloudinary
+    if use_cloudinary():
+        ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+        name_no_ext = filename.rsplit('.', 1)[0] if '.' in filename else filename
+        resource_type = 'video' if ext in (app.config['ALLOWED_AUDIO_EXT'] | app.config['ALLOWED_VIDEO_EXT']) else 'image'
+        cloud_url = f"https://res.cloudinary.com/{app.config['CLOUDINARY_CLOUD_NAME']}/{resource_type}/upload/weart/{subfolder}/{name_no_ext}.{ext}"
+        return redirect(cloud_url)
+
+    # Cloudflare R2
     r2_public = app.config.get('R2_PUBLIC_URL', '')
     if r2_public:
         return redirect(f"{r2_public.rstrip('/')}/{subfolder}/{filename}")
@@ -713,6 +760,11 @@ def serve_media(subfolder, token, filename):
 
 @app.route('/media/avatar/<filename>')
 def serve_avatar(filename):
+    if use_cloudinary():
+        ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+        name_no_ext = filename.rsplit('.', 1)[0] if '.' in filename else filename
+        cloud_url = f"https://res.cloudinary.com/{app.config['CLOUDINARY_CLOUD_NAME']}/image/upload/weart/originals/{name_no_ext}.{ext}"
+        return redirect(cloud_url)
     return send_from_directory(os.path.join(UPLOAD_FOLDER, 'originals'), filename)
 
 
