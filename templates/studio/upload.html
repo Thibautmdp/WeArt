@@ -1,0 +1,322 @@
+﻿{% extends 'base.html' %}
+{% block title %}{% if artwork %}Modifier{% else %}Publier une œuvre{% endif %} — WeArt{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <h1 class="section-title">{% if artwork %}✏️ Modifier l'œuvre{% else %}🎨 Publier une œuvre{% endif %}</h1>
+
+  <!-- Le form enveloppe les deux colonnes pour que tous les champs soient inclus -->
+  <form method="POST" action="{{ url_for('edit_artwork', artwork_id=artwork.id) if artwork else url_for('upload_artwork') }}" enctype="multipart/form-data" id="upload-form">
+  <div class="studio-layout">
+
+    <!-- Left: fichier + champs principaux -->
+    <div>
+      {% if not artwork %}
+      <div class="upload-drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <div class="icon">📁</div>
+        <p><strong>Clique ou glisse un fichier ici</strong></p>
+        <p style="margin-top:6px;font-size:.8rem;">Images : JPG, PNG, GIF, WEBP · Audio : MP3, WAV, OGG · Vidéo : MP4, WEBM</p>
+        <input type="file" name="file" id="file-input" accept="image/*,audio/*,video/*">
+      </div>
+      <div class="upload-preview" id="upload-preview" style="display:none;"></div>
+      <div id="remove-file-bar" style="display:none;margin-top:8px;">
+        <button type="button" onclick="removeFile()"
+                style="background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;cursor:pointer;color:var(--text2);font-size:.82rem;display:flex;align-items:center;gap:6px;transition:border-color .2s,color .2s;"
+                onmouseover="this.style.borderColor='#c0392b';this.style.color='#c0392b'"
+                onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">
+          🗑 Supprimer le fichier
+        </button>
+      </div>
+      {% endif %}
+
+      <div class="form-group" style="margin-top:20px;">
+        <label class="form-label">Titre de l'œuvre *</label>
+        <input class="form-input" type="text" name="title" required maxlength="150"
+               value="{{ artwork.title if artwork else '' }}" placeholder="Donne un titre à ton œuvre">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-textarea" name="description" rows="4"
+                  placeholder="Parle de ton œuvre, de ta démarche artistique…">{{ artwork.description if artwork else '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tags (séparés par des virgules)</label>
+        <input class="form-input" type="text" name="tags"
+               value="{{ artwork.tags if artwork else '' }}"
+               placeholder="abstrait, bleu, paysage, portrait…">
+      </div>
+
+      {% if artwork %}
+      <div class="form-group">
+        <label class="form-checkbox">
+          <input type="checkbox" name="is_published" {% if artwork.is_published %}checked{% endif %}>
+          Publié (décocher pour passer en privé)
+        </label>
+      </div>
+      {% endif %}
+
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button class="btn btn-primary" type="submit">
+          {% if artwork %}💾 Sauvegarder{% else %}🚀 Publier{% endif %}
+        </button>
+        {% if artwork %}
+        <a href="{{ url_for('artwork_detail', artwork_id=artwork.id) }}" class="btn btn-ghost">Annuler</a>
+        {% else %}
+        <a href="{{ url_for('feed') }}" class="btn btn-ghost">Annuler</a>
+        <a href="{{ url_for('ai_studio') }}" class="btn btn-ghost">✨ Générer avec l'IA</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right: métadonnées (DANS le même form) -->
+    <div>
+      <div class="card" style="padding:20px;">
+        <h3 style="margin-bottom:16px;font-size:1rem;">Détails de l'œuvre</h3>
+
+        <div class="form-group">
+          <label class="form-label">Type d'art *</label>
+          <select class="form-select" name="media_type" id="media_type_select">
+            {% for key, label in media_types %}
+            <option value="{{ key }}"
+              {% if artwork and artwork.media_type == key %}selected
+              {% elif not artwork and key == 'photography' %}selected
+              {% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Technique / Médium</label>
+          <input class="form-input" type="text" name="medium"
+                 value="{{ artwork.medium if artwork else '' }}"
+                 placeholder="Huile sur toile, Aquarelle, Photographie argentique…">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Année de création</label>
+          <input class="form-input" type="number" name="year_created"
+                 value="{{ artwork.year_created if artwork else '' }}" min="1900" max="2030" placeholder="2024">
+        </div>
+
+        <hr class="divider">
+
+        <h3 style="margin-bottom:16px;font-size:1rem;">🛒 Vente</h3>
+
+        <div class="form-group">
+          <label class="form-checkbox">
+            <input type="checkbox" name="is_for_sale"
+                   {% if artwork and artwork.is_for_sale %}checked{% endif %}
+                   onchange="document.getElementById('price-fields').classList.toggle('visible',this.checked)">
+            Mettre en vente cette œuvre
+          </label>
+        </div>
+
+        <div class="price-fields {% if artwork and artwork.is_for_sale %}visible{% endif %}" id="price-fields">
+          <div class="form-group">
+            <label class="form-label">Prix (€)</label>
+            <input class="form-input" type="number" name="price"
+                   step="0.01" min="0"
+                   value="{{ '%.2f'|format(artwork.price) if artwork and artwork.price else '' }}"
+                   placeholder="150.00">
+          </div>
+
+          <div class="form-group">
+            <label class="form-checkbox">
+              <input type="checkbox" name="print_available"
+                     {% if artwork and artwork.print_available %}checked{% endif %}
+                     onchange="document.getElementById('print-price').classList.toggle('visible',this.checked)">
+              Proposer une impression
+            </label>
+          </div>
+
+          <div class="price-fields {% if artwork and artwork.print_available %}visible{% endif %}" id="print-price">
+            <div class="form-group">
+              <label class="form-label">Prix de l'impression (€)</label>
+              <input class="form-input" type="number" name="print_price"
+                     step="0.01" min="0"
+                     value="{{ '%.2f'|format(artwork.print_price) if artwork and artwork.print_price else '' }}"
+                     placeholder="30.00">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:16px;margin-top:14px;background:var(--accent-dim);border-color:rgba(201,169,110,.2);">
+        <p style="font-size:.82rem;color:var(--text2);">
+          🛡️ <strong style="color:var(--accent);">Protection automatique</strong> : un filigrane discret sera ajouté à tes images. L'original reste protégé.
+        </p>
+      </div>
+    </div>
+
+  </div>
+  </form>
+
+  {% if not artwork %}
+  <!-- Bouton étapes pour nouvelle oeuvre : publie d'abord puis ouvre les étapes -->
+  <div style="margin-top:20px;">
+    <button type="button" onclick="publierEtOuvrirEtapes()"
+            style="width:100%;display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:2px dashed var(--border);border-radius:12px;padding:16px 20px;cursor:pointer;color:var(--text1);font-size:.95rem;font-weight:700;transition:border-color .2s;"
+            onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+      <span>📝 Étapes de création</span>
+      <span style="font-size:.8rem;color:var(--text2);font-weight:400;">Publie l'œuvre pour ajouter des étapes →</span>
+    </button>
+  </div>
+  {% endif %}
+
+  {% if artwork %}
+  <!-- Bouton toggle Étapes -->
+  <div style="margin-top:28px;">
+    <button type="button" onclick="toggleSteps(this)"
+            id="steps-toggle"
+            class="btn btn-ghost"
+            style="width:100%;justify-content:space-between;padding:16px 20px;font-size:1rem;font-weight:700;border:2px dashed var(--border);">
+      <span>📝 Étapes de création {% if steps %}<span style="background:var(--accent);color:#000;border-radius:99px;padding:1px 9px;font-size:.75rem;margin-left:6px;">{{ steps|length }}</span>{% endif %}</span>
+      <span id="steps-arrow" style="font-size:.8rem;color:var(--text2);">{% if steps or request.args.get('steps') %}▲ Ouvert{% else %}▼ Ouvrir{% endif %}</span>
+    </button>
+
+    <div id="steps-panel" {% if not steps and not request.args.get('steps') %}class="hidden"{% endif %} style="margin-top:0;">
+    <div class="card" style="padding:24px;border-top-left-radius:0;border-top-right-radius:0;border-top:none;">
+
+      <p style="font-size:.82rem;color:var(--text2);margin-bottom:20px;">
+        Montre ton processus créatif pas à pas (photos, vidéos, descriptions). Visible sur la page de l'œuvre.
+      </p>
+
+      {% if steps %}
+      <div style="margin-bottom:24px;">
+        {% for step in steps %}
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:14px;background:var(--bg2);border-radius:8px;margin-bottom:8px;border:1px solid var(--border);">
+          <div style="min-width:30px;height:30px;border-radius:50%;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;">
+            {{ loop.index }}
+          </div>
+          <div style="flex:1;min-width:0;">
+            {% if step.title %}<strong style="font-size:.9rem;">{{ step.title }}</strong>{% endif %}
+            {% if step.description %}<p style="margin:4px 0 0;font-size:.85rem;color:var(--text2);line-height:1.5;">{{ step.description }}</p>{% endif %}
+            {% if step.image_path %}
+              {% set ext = step.image_path.rsplit('.', 1)[-1].lower() %}
+              {% if ext in ['mp4', 'webm', 'mov'] %}
+              <video src="{{ url_for('serve_media', subfolder='video', token=make_token(step.image_path), filename=step.image_path) }}"
+                     controls style="max-height:140px;border-radius:6px;margin-top:8px;max-width:100%;"></video>
+              {% else %}
+              <img src="{{ url_for('serve_media', subfolder='originals', token=make_token(step.image_path), filename=step.image_path) }}"
+                   style="max-height:120px;border-radius:6px;margin-top:8px;object-fit:cover;" alt="">
+              {% endif %}
+            {% endif %}
+          </div>
+          <form action="{{ url_for('delete_step', artwork_id=artwork.id, step_id=step.id) }}" method="POST"
+                onsubmit="return confirm('Supprimer cette étape ?')" style="flex-shrink:0;">
+            <button type="submit" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:1.1rem;" title="Supprimer">🗑</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Formulaire ajout étape -->
+      <form action="{{ url_for('add_step', artwork_id=artwork.id) }}" method="POST" enctype="multipart/form-data"
+            style="background:var(--bg2);border-radius:10px;padding:18px;border:1px solid var(--border);">
+        <p style="font-size:.9rem;font-weight:600;margin-bottom:14px;color:var(--accent);">+ Nouvelle étape</p>
+        <div class="form-group">
+          <input class="form-input" type="text" name="step_title"
+                 placeholder="Titre (ex : Esquisse, Mise en couleur, Finitions…)">
+        </div>
+        <div class="form-group">
+          <textarea class="form-textarea" name="step_description" rows="3"
+                    placeholder="Décris ce que tu as fait à cette étape…"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="font-size:.85rem;">Photo ou vidéo de l'étape (optionnel)</label>
+          <input type="file" name="step_image" accept="image/*,video/*" class="form-input" style="padding:8px;">
+        </div>
+        <button type="submit" class="btn btn-primary">Ajouter cette étape</button>
+      </form>
+
+    </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>.hidden { display: none !important; }</style>
+<script>
+function toggleSteps(btn) {
+  const panel = document.getElementById('steps-panel');
+  const arrow = document.getElementById('steps-arrow');
+  const hidden = panel.classList.toggle('hidden');
+  arrow.textContent = hidden ? '▼ Ouvrir' : '▲ Ouvert';
+}
+
+// Soumet le formulaire principal puis ouvre les étapes sur la page d'édition
+function publierEtOuvrirEtapes() {
+  const form = document.getElementById('upload-form');
+  if (!form) return;
+  // Vérifie qu'un titre est renseigné
+  const title = form.querySelector('[name=title]');
+  if (!title || !title.value.trim()) {
+    title.focus();
+    title.style.borderColor = 'var(--accent)';
+    return;
+  }
+  // Ajoute un champ caché pour signaler qu'on veut ouvrir les étapes
+  const hidden = document.createElement('input');
+  hidden.type = 'hidden';
+  hidden.name = '_open_steps';
+  hidden.value = '1';
+  form.appendChild(hidden);
+  form.submit();
+}
+
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const preview = document.getElementById('upload-preview');
+const removeBar = document.getElementById('remove-file-bar');
+
+if (fileInput) {
+  fileInput.addEventListener('change', showPreview);
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      showPreview();
+    }
+  });
+}
+
+function showPreview() {
+  const file = fileInput.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  preview.style.display = 'block';
+  if (removeBar) removeBar.style.display = 'block';
+  if (file.type.startsWith('image/')) {
+    preview.innerHTML = `<img src="${url}" style="max-height:300px;object-fit:contain;width:100%;background:var(--bg3);">`;
+  } else if (file.type.startsWith('audio/')) {
+    preview.innerHTML = `<audio controls src="${url}" style="width:100%;margin-top:10px;"></audio>`;
+  } else if (file.type.startsWith('video/')) {
+    preview.innerHTML = `<video controls src="${url}" style="width:100%;max-height:300px;"></video>`;
+  }
+  const select = document.getElementById('media_type_select');
+  if (select) {
+    if (file.type.startsWith('audio/')) select.value = 'music';
+    else if (file.type.startsWith('video/')) select.value = 'video';
+  }
+}
+
+function removeFile() {
+  fileInput.value = '';
+  preview.style.display = 'none';
+  preview.innerHTML = '';
+  if (removeBar) removeBar.style.display = 'none';
+}
+</script>
+{% endblock %}

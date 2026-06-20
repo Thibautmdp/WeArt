@@ -1,0 +1,29 @@
+# Environnement
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Base de données locale
+instance/
+*.db
+*.sqlite
+
+# Fichiers uploadés (stockés sur Cloudflare R2 en prod)
+uploads/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

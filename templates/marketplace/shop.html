@@ -1,0 +1,70 @@
+﻿{% extends 'base.html' %}
+{% block title %}Marché — WeArt{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/feed.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <h1 class="section-title">🛒 <span>Marché</span> des artistes</h1>
+  <p style="color:var(--text2);margin-bottom:24px;">Achète des œuvres originales directement auprès des artistes.</p>
+
+  <!-- Filter tabs -->
+  <div class="filter-tabs">
+    <a href="{{ url_for('marketplace') }}" class="filter-tab {% if active_type=='all' %}active{% endif %}">✦ Tout</a>
+    {% for key, label in media_types %}
+      <a href="{{ url_for('marketplace') }}?type={{ key }}" class="filter-tab {% if active_type==key %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  {% if artworks %}
+  <div class="explore-grid">
+    {% for artwork in artworks %}
+    {% set token = make_token(artwork.get_display_path()) %}
+    <a href="{{ url_for('artwork_detail', artwork_id=artwork.id) }}" class="artwork-card" style="display:block;text-decoration:none;">
+      <div class="media-wrapper" style="height:220px;">
+        {% if artwork.is_image() and artwork.watermarked_path %}
+          <img src="{{ url_for('serve_media', subfolder='watermarked', token=token, filename=artwork.watermarked_path) }}"
+               alt="{{ artwork.title }}" loading="lazy" style="height:220px;width:100%;object-fit:cover;">
+        {% elif artwork.is_audio() %}
+          <div class="audio-placeholder" style="height:220px;">🎵<div class="title">{{ artwork.title }}</div></div>
+        {% else %}
+          <div style="height:220px;display:flex;align-items:center;justify-content:center;color:var(--text3);">🎨</div>
+        {% endif %}
+        <div class="media-overlay"></div>
+      </div>
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="media-type-badge">{{ artwork.get_media_label() }}</span>
+        </div>
+        <div class="card-title">{{ artwork.title }}</div>
+        <div class="card-artist">par {{ artwork.artist.get_name() }}</div>
+        <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:1.1rem;font-weight:700;color:var(--accent);">
+            {{ '%.0f'|format(artwork.price or 0) }} €
+          </span>
+          {% if artwork.print_available and artwork.print_price %}
+          <span style="font-size:.75rem;color:var(--text2);">+ impression {{ '%.0f'|format(artwork.print_price) }} €</span>
+          {% endif %}
+          <span class="btn btn-primary btn-sm" style="cursor:pointer;">Acheter</span>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">🛒</div>
+    <h3>Aucune œuvre en vente pour l'instant</h3>
+    <p>Les artistes peuvent activer la vente depuis leur tableau de bord.</p>
+    {% if current_user.is_authenticated %}
+    <a href="{{ url_for('upload_artwork') }}" class="btn btn-primary" style="margin-top:16px;">Mettre une œuvre en vente</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/protect.js') }}"></script>
+{% endblock %}

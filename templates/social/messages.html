@@ -1,0 +1,51 @@
+﻿{% extends 'base.html' %}
+{% block title %}Messages — WeArt{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page" style="max-width:700px;">
+  <h1 class="section-title">💬 Messages</h1>
+
+  {% if conversations %}
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    {% for conv in conversations %}
+    <a href="{{ url_for('conversation', username=conv.user.username) }}"
+       style="display:flex;align-items:center;gap:14px;padding:16px;text-decoration:none;"
+       class="card {% if conv.unread > 0 %}{{ '' }}{% endif %}">
+      <div class="avatar avatar-md" style="background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:1.5rem;border-radius:50%;">
+        {% if conv.user.avatar_path and conv.user.avatar_path != 'default_avatar.jpg' %}
+        <img src="{{ url_for('serve_avatar', filename=conv.user.avatar_path) }}" class="avatar avatar-md">
+        {% else %}
+        👤
+        {% endif %}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:{% if conv.unread > 0 %}700{% else %}500{% endif %};color:var(--text);">
+          {{ conv.user.get_name() }}
+          {% if conv.unread > 0 %}
+          <span class="notif-badge" style="display:inline-flex;margin-left:6px;">{{ conv.unread }}</span>
+          {% endif %}
+        </div>
+        <div style="color:var(--text2);font-size:.83rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px;">
+          {% if conv.last_message.sender_id == current_user.id %}Toi : {% endif %}
+          {{ conv.last_message.body }}
+        </div>
+      </div>
+      <div style="font-size:.75rem;color:var(--text3);flex-shrink:0;">
+        {{ conv.last_message.created_at.strftime('%d/%m') }}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">💬</div>
+    <h3>Aucun message</h3>
+    <p>Envoie un message à un artiste depuis sa page de profil.</p>
+    <a href="{{ url_for('explore') }}" class="btn btn-primary" style="margin-top:16px;">Explorer les artistes</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+﻿{% extends 'base.html' %}
+{% block title %}Mon CV artistique — WeArt{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">{% endblock %}
+
+{% block content %}
+<div class="page" style="max-width:720px;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h1 class="section-title" style="margin-bottom:4px;">Mon CV artistique</h1>
+      <p style="color:var(--text2);font-size:.9rem;">Visible sur ton portfolio public dans la section CV.</p>
+    </div>
+    <a href="{{ url_for('portfolio', username=current_user.username) }}#cv" class="btn btn-ghost">
+      Voir mon portfolio
+    </a>
+  </div>
+
+  <form method="POST">
+
+    <div class="card" style="padding:24px;margin-bottom:20px;">
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:16px;color:var(--accent);">Formation</h3>
+      <p style="font-size:.8rem;color:var(--text2);margin-bottom:10px;">Écoles, diplômes, formations artistiques…</p>
+      <textarea class="form-textarea" name="cv_formation" rows="5"
+                placeholder="Ex :&#10;2020 — Diplôme des Beaux-Arts de Paris&#10;2018 — Bac STMG option Arts Appliqués&#10;2022 — Masterclass photographie argentique avec Jean Martin">{{ current_user.cv_formation or '' }}</textarea>
+    </div>
+
+    <div class="card" style="padding:24px;margin-bottom:20px;">
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:16px;color:var(--accent);">Expositions & Expériences</h3>
+      <p style="font-size:.8rem;color:var(--text2);margin-bottom:10px;">Expositions, collaborations, résidences artistiques…</p>
+      <textarea class="form-textarea" name="cv_experiences" rows="5"
+                placeholder="Ex :&#10;2024 — Exposition collective « Lumières », Galerie Dupont, Paris&#10;2023 — Résidence artistique, Fondation des Arts, Lyon&#10;2022 — Collaboration avec la marque XYZ pour campagne visuelle">{{ current_user.cv_experiences or '' }}</textarea>
+    </div>
+
+    <div class="card" style="padding:24px;margin-bottom:20px;">
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:16px;color:var(--accent);">Prix & Distinctions</h3>
+      <p style="font-size:.8rem;color:var(--text2);margin-bottom:10px;">Prix remportés, concours, mentions…</p>
+      <textarea class="form-textarea" name="cv_awards" rows="4"
+                placeholder="Ex :&#10;2024 — 1er Prix au Concours National de Photographie&#10;2023 — Mention spéciale au Festival de l'Image Numérique">{{ current_user.cv_awards or '' }}</textarea>
+    </div>
+
+    <div class="card" style="padding:24px;margin-bottom:28px;">
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:16px;color:var(--accent);">Techniques & Compétences</h3>
+      <p style="font-size:.8rem;color:var(--text2);margin-bottom:10px;">Médiums, logiciels, styles maîtrisés…</p>
+      <textarea class="form-textarea" name="cv_skills" rows="4"
+                placeholder="Ex :&#10;Photographie argentique, Peinture à l'huile, Aquarelle&#10;Photoshop, Lightroom, Illustrator&#10;Tirage grand format, Installation artistique">{{ current_user.cv_skills or '' }}</textarea>
+    </div>
+
+    <div style="display:flex;gap:12px;">
+      <button class="btn btn-primary" type="submit">Enregistrer mon CV</button>
+      <a href="{{ url_for('portfolio', username=current_user.username) }}" class="btn btn-ghost">Annuler</a>
+    </div>
+
+  </form>
+</div>
+{% endblock %}

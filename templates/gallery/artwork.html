@@ -1,0 +1,273 @@
+﻿{% extends 'base.html' %}
+{% block title %}{{ artwork.title }} — WeArt{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="artwork-layout">
+
+    <!-- Media viewer -->
+    <div>
+      <div class="artwork-media-frame">
+        {% if artwork.is_image() %}
+          {% set display_file = artwork.watermarked_path or artwork.file_path %}
+          {% set subfolder = 'watermarked' if artwork.watermarked_path else 'originals' %}
+          {% if display_file %}
+          <img src="{{ url_for('serve_media', subfolder=subfolder, token=media_token, filename=display_file) }}"
+               alt="{{ artwork.title }}" id="artwork-main-img">
+          {% else %}
+          <div style="padding:60px;text-align:center;color:var(--text2);">🎨 Aucun fichier uploadé</div>
+          {% endif %}
+        {% elif artwork.is_audio() %}
+          <div style="padding:40px;text-align:center;">
+            <div style="font-size:4rem;margin-bottom:20px;">🎵</div>
+            <h3 style="margin-bottom:20px;">{{ artwork.title }}</h3>
+            {% if artwork.file_path %}
+            {% set audio_token = make_token(artwork.file_path) %}
+            <audio controls style="width:100%;"
+                   controlsList="nodownload"
+                   src="{{ url_for('serve_media', subfolder='audio', token=audio_token, filename=artwork.file_path) }}">
+            </audio>
+            {% endif %}
+          </div>
+        {% elif artwork.is_video() %}
+          {% if artwork.file_path %}
+          {% set video_token = make_token(artwork.file_path) %}
+          <video controls width="100%"
+                 src="{{ url_for('serve_media', subfolder='video', token=video_token, filename=artwork.file_path) }}">
+          </video>
+          {% endif %}
+        {% else %}
+          <div style="padding:60px;text-align:center;color:var(--text2);">🎨 Médias non disponibles</div>
+        {% endif %}
+        {% if artwork.is_image() %}<div class="media-overlay" id="media-overlay"></div>{% endif %}
+      </div>
+
+      <!-- Comments section -->
+      <div class="comments-section">
+        <h3 class="section-title" style="font-size:1.1rem;">💬 Commentaires</h3>
+
+        {% if current_user.is_authenticated %}
+        <div class="comment-input-row">
+          <textarea class="form-textarea" id="comment-input" placeholder="Laisse un commentaire…" rows="2"></textarea>
+          <button class="btn btn-primary btn-sm" id="comment-submit">Publier</button>
+        </div>
+        {% endif %}
+
+        <div class="comment-list" id="comment-list">
+          {% for comment in comments %}
+          <div class="comment-item">
+            <span style="font-size:1.5rem;">👤</span>
+            <div class="comment-body">
+              <span class="comment-author">
+                <a href="{{ url_for('portfolio', username=comment.author.username) }}">{{ comment.author.get_name() }}</a>
+              </span>
+              <span class="comment-date">{{ comment.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
+              <div class="comment-text">{{ comment.body }}</div>
+            </div>
+          </div>
+          {% if comment.replies.count() > 0 %}
+            {% for reply in comment.replies %}
+            <div class="comment-item" style="margin-left:40px;">
+              <span style="font-size:1.2rem;">👤</span>
+              <div class="comment-body">
+                <span class="comment-author">{{ reply.author.get_name() }}</span>
+                <span class="comment-date">{{ reply.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
+                <div class="comment-text">{{ reply.body }}</div>
+              </div>
+            </div>
+            {% endfor %}
+          {% endif %}
+          {% else %}
+          <p style="color:var(--text3);font-size:.9rem;padding:16px 0;">Sois le premier à commenter !</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="artwork-sidebar">
+      <h1 class="artwork-title">{{ artwork.title }}</h1>
+
+      <!-- Artist row -->
+      <div class="artwork-artist-row">
+        <div class="artist-mini">
+          <span style="font-size:2rem;">👤</span>
+          <div>
+            <a href="{{ url_for('portfolio', username=artwork.artist.username) }}" class="name" style="font-size:1rem;">
+              {{ artwork.artist.get_name() }}
+              {% if artwork.artist.is_verified %}<span class="verified-badge">✓</span>{% endif %}
+            </a>
+            <div class="sub">@{{ artwork.artist.username }}</div>
+          </div>
+        </div>
+        {% if current_user.is_authenticated and current_user.id != artwork.artist_id %}
+        <form action="{{ url_for('toggle_follow', user_id=artwork.artist_id) }}" method="POST">
+          <button type="submit"
+                  class="follow-btn {% if current_user.is_following(artwork.artist) %}following{% endif %}"
+                  id="follow-btn" data-user-id="{{ artwork.artist_id }}">
+            {% if current_user.is_following(artwork.artist) %}Abonné{% else %}Suivre{% endif %}
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+      <!-- Like + actions -->
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;">
+        {% if current_user.is_authenticated %}
+        <button class="like-btn {% if user_liked %}liked{% endif %}" id="like-btn"
+                data-artwork-id="{{ artwork.id }}" style="font-size:1rem;padding:8px 14px;">
+          <span class="heart">{% if user_liked %}❤️{% else %}🤍{% endif %}</span>
+          <span class="like-count">{{ artwork.like_count or 0 }}</span> J'aime
+        </button>
+        {% endif %}
+        {% if current_user.is_authenticated and current_user.id != artwork.artist_id %}
+        <a href="{{ url_for('conversation', username=artwork.artist.username) }}" class="btn btn-ghost btn-sm">
+          💬 Contacter l'artiste
+        </a>
+        {% endif %}
+        {% if current_user.is_authenticated and current_user.id == artwork.artist_id %}
+        <a href="{{ url_for('edit_artwork', artwork_id=artwork.id) }}" class="btn btn-ghost btn-sm">✏️ Modifier</a>
+        <form action="{{ url_for('delete_artwork', artwork_id=artwork.id) }}" method="POST"
+              onsubmit="return confirm('Supprimer définitivement cette œuvre ?')">
+          <button type="submit" class="btn btn-danger btn-sm">🗑 Supprimer</button>
+        </form>
+        {% endif %}
+      </div>
+
+      <!-- Price box -->
+      {% if artwork.is_for_sale %}
+      <div class="artwork-price-box">
+        {% if artwork.is_sold %}
+          <div class="sold-label">Vendu</div>
+        {% else %}
+          {% if artwork.price %}
+          <div class="price">{{ '%.2f'|format(artwork.price) }} €</div>
+          <div style="font-size:.8rem;color:var(--text2);margin-bottom:12px;">Œuvre originale</div>
+          {% endif %}
+          {% if artwork.print_available and artwork.print_price %}
+          <div style="font-size:.85rem;color:var(--text2);margin-bottom:10px;">
+            Impression disponible : <strong style="color:var(--accent)">{{ '%.2f'|format(artwork.print_price) }} €</strong>
+          </div>
+          {% endif %}
+          <a href="{{ url_for('buy_artwork', artwork_id=artwork.id) }}" class="btn btn-primary" style="width:100%;justify-content:center;">
+            🛒 Acheter
+          </a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Metadata -->
+      <ul class="artwork-meta-list">
+        <li><strong>Type :</strong> {{ artwork.get_media_label() }}</li>
+        {% if artwork.medium %}<li><strong>Technique :</strong> {{ artwork.medium }}</li>{% endif %}
+        {% if artwork.year_created %}<li><strong>Année :</strong> {{ artwork.year_created }}</li>{% endif %}
+        <li><strong>Vues :</strong> {{ artwork.view_count or 0 }}</li>
+        <li><strong>Date :</strong> {{ artwork.created_at.strftime('%d/%m/%Y') }}</li>
+        {% if artwork.is_ai_generated %}<li><strong>✨ Généré par IA</strong></li>{% endif %}
+      </ul>
+
+      {% if artwork.description %}
+      <p class="artwork-description">{{ artwork.description }}</p>
+      {% endif %}
+
+      <!-- Bouton Étapes de création -->
+      {% if steps %}
+      <div style="margin-top:16px;">
+        <button onclick="this.nextElementSibling.classList.toggle('hidden');this.classList.toggle('open')"
+                style="width:100%;display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;cursor:pointer;color:var(--text1);font-size:.9rem;font-weight:600;transition:border-color .2s;"
+                onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span>📝 Étapes de création
+            <span style="background:var(--accent);color:#000;border-radius:99px;padding:1px 8px;font-size:.72rem;margin-left:6px;font-weight:700;">{{ steps|length }}</span>
+          </span>
+          <span style="color:var(--text2);font-size:.8rem;" id="steps-arrow">▼</span>
+        </button>
+
+        <div class="hidden" style="border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;overflow:hidden;">
+          <div style="position:relative;padding:16px 16px 4px 32px;border-left:2px solid var(--accent);margin:12px 12px 12px 16px;">
+            {% for step in steps %}
+            <div style="display:flex;gap:12px;margin-bottom:20px;align-items:flex-start;">
+              <div style="min-width:26px;height:26px;border-radius:50%;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0;margin-left:-29px;">
+                {{ loop.index }}
+              </div>
+              <div style="flex:1;min-width:0;">
+                {% if step.title %}
+                <strong style="font-size:.9rem;color:var(--text1);">{{ step.title }}</strong>
+                {% endif %}
+                {% if step.description %}
+                <p style="margin:4px 0 8px;font-size:.85rem;color:var(--text2);line-height:1.6;">{{ step.description }}</p>
+                {% endif %}
+                {% if step.image_path %}
+                  {% set ext = step.image_path.rsplit('.', 1)[-1].lower() %}
+                  {% if ext in ['mp4', 'webm', 'mov'] %}
+                  <video src="{{ url_for('serve_media', subfolder='video', token=make_token(step.image_path), filename=step.image_path) }}"
+                         controls style="width:100%;border-radius:6px;max-height:180px;"></video>
+                  {% else %}
+                  <img src="{{ url_for('serve_media', subfolder='originals', token=make_token(step.image_path), filename=step.image_path) }}"
+                       alt="Étape {{ loop.index }}"
+                       style="width:100%;border-radius:6px;max-height:200px;object-fit:contain;background:var(--bg3);">
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Tags -->
+      {% if artwork.get_tags_list() %}
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;">
+        {% for tag in artwork.get_tags_list() %}
+        <a href="{{ url_for('explore') }}?q={{ tag }}" class="tag">{{ tag }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>.hidden { display: none !important; }</style>
+<script>
+const ARTWORK_ID = {{ artwork.id }};
+</script>
+<script src="{{ url_for('static', filename='js/likes.js') }}"></script>
+<script src="{{ url_for('static', filename='js/protect.js') }}"></script>
+<script>
+// AJAX comment submission
+const commentInput = document.getElementById('comment-input');
+const commentSubmit = document.getElementById('comment-submit');
+const commentList = document.getElementById('comment-list');
+
+if (commentSubmit) {
+  commentSubmit.addEventListener('click', async () => {
+    const body = commentInput.value.trim();
+    if (!body) return;
+    const resp = await fetch(`/api/comment/${ARTWORK_ID}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({body})
+    });
+    if (resp.ok) {
+      const d = await resp.json();
+      const el = document.createElement('div');
+      el.className = 'comment-item';
+      el.innerHTML = `<span style="font-size:1.5rem">👤</span>
+        <div class="comment-body">
+          <span class="comment-author">${d.author}</span>
+          <span class="comment-date">${d.created_at}</span>
+          <div class="comment-text">${d.body}</div>
+        </div>`;
+      commentList.prepend(el);
+      commentInput.value = '';
+    }
+  });
+}
+</script>
+{% endblock %}

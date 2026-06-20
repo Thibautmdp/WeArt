@@ -1,0 +1,100 @@
+﻿{% extends 'base.html' %}
+{% block title %}Explorer — WeArt{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/feed.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <h1 class="section-title">
+    {% if search_query %}
+      Résultats pour "<span>{{ search_query }}</span>"
+    {% else %}
+      Explorer les œuvres
+    {% endif %}
+  </h1>
+
+  <!-- Search type selector -->
+  {% if search_query %}
+  <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+    {% set types = [('all','✦ Tout'), ('artwork','🎨 Œuvres'), ('artist','👤 Artistes'), ('tag','🏷️ Mots-clés')] %}
+    {% for val, label in types %}
+    <a href="{{ url_for('explore') }}?q={{ search_query }}&search_by={{ val }}"
+       style="padding:7px 16px;border-radius:99px;font-size:.85rem;font-weight:600;text-decoration:none;border:1px solid {% if search_by == val %}var(--accent){% else %}var(--border){% endif %};color:{% if search_by == val %}var(--accent){% else %}var(--text2){% endif %};background:{% if search_by == val %}rgba(201,169,110,.1){% else %}transparent{% endif %};transition:all .2s;">
+      {{ label }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Filter tabs -->
+  <div class="filter-tabs">
+    <a href="{{ url_for('explore') }}" class="filter-tab {% if active_type=='all' and not search_query %}active{% endif %}">✦ Tout</a>
+    {% for key, label in media_types %}
+      <a href="{{ url_for('explore') }}?type={{ key }}" class="filter-tab {% if active_type==key %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  <!-- Artists results -->
+  {% if artists %}
+  <div style="margin-bottom:28px;">
+    <h2 style="font-size:1rem;color:var(--text2);margin-bottom:12px;font-weight:600;">Artistes</h2>
+    <div class="artists-row">
+      {% for artist in artists %}
+      <a href="{{ url_for('portfolio', username=artist.username) }}" class="artist-chip">
+        <span style="font-size:1.5rem">👤</span>
+        <div>
+          <div style="font-weight:600;font-size:.85rem;">{{ artist.get_name() }}</div>
+          <div style="font-size:.75rem;color:var(--text2);">@{{ artist.username }}</div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Artworks grid -->
+  {% if artworks %}
+  <div class="feed-grid">
+    {% for artwork in artworks %}
+    {% set token = make_token(artwork.get_display_path()) %}
+    <a href="{{ url_for('artwork_detail', artwork_id=artwork.id) }}" class="artwork-card" style="display:block;text-decoration:none;">
+      <div class="media-wrapper">
+        {% if artwork.is_image() and artwork.watermarked_path %}
+          <img src="{{ url_for('serve_media', subfolder='watermarked', token=token, filename=artwork.watermarked_path) }}"
+               alt="{{ artwork.title }}" loading="lazy">
+        {% elif artwork.is_audio() %}
+          <div class="audio-placeholder">🎵<div class="title">{{ artwork.title }}</div></div>
+        {% elif artwork.is_video() %}
+          <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0d0d0d;color:var(--text3);">▶️</div>
+        {% else %}
+          <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);">🎨</div>
+        {% endif %}
+        <div class="media-overlay"></div>
+      </div>
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="media-type-badge">{{ artwork.get_media_label() }}</span>
+          {% if artwork.is_for_sale and not artwork.is_sold %}
+            <span class="tag">{{ '%.0f'|format(artwork.price or 0) }} €</span>
+          {% endif %}
+        </div>
+        <div class="card-title">{{ artwork.title }}</div>
+        <div class="card-artist">{{ artwork.artist.get_name() }}</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">🔍</div>
+    <h3>Aucun résultat</h3>
+    <p>Essaie d'autres mots-clés ou explore une autre catégorie.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/protect.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,136 @@
+﻿{% extends 'base.html' %}
+{% block title %}Mon Espace — WeArt{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/feed.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page">
+
+  <!-- Bandeau de bienvenue -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+    <div>
+      <h1 style="font-size:1.6rem;font-weight:800;margin-bottom:4px;">
+        Bonjour, <span style="color:var(--accent)">{{ current_user.get_name() }}</span> 👋
+      </h1>
+      <p style="color:var(--text2);font-size:.9rem;">Gère et publie tes œuvres depuis ton espace personnel.</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="{{ url_for('upload_artwork') }}" class="btn btn-primary">
+        + Publier une œuvre
+      </a>
+      <a href="{{ url_for('portfolio', username=current_user.username) }}" class="btn btn-ghost">
+        Voir mon portfolio
+      </a>
+    </div>
+  </div>
+
+  <!-- Stats rapides -->
+  <div style="display:flex;gap:14px;margin-bottom:28px;flex-wrap:wrap;">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 24px;flex:1;min-width:120px;text-align:center;">
+      <div style="font-size:1.6rem;font-weight:800;color:var(--accent)">{{ artworks|length }}</div>
+      <div style="font-size:.8rem;color:var(--text2);margin-top:2px;">Œuvre{{ 's' if artworks|length > 1 }}</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 24px;flex:1;min-width:120px;text-align:center;">
+      <div style="font-size:1.6rem;font-weight:800;color:var(--accent)">{{ total_likes }}</div>
+      <div style="font-size:.8rem;color:var(--text2);margin-top:2px;">Like{{ 's' if total_likes > 1 }}</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 24px;flex:1;min-width:120px;text-align:center;">
+      <div style="font-size:1.6rem;font-weight:800;color:var(--accent)">{{ total_views }}</div>
+      <div style="font-size:.8rem;color:var(--text2);margin-top:2px;">Vue{{ 's' if total_views > 1 }}</div>
+    </div>
+  </div>
+
+  <!-- Titre section -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+    <h2 style="font-size:1.1rem;font-weight:700;">Mes œuvres publiées</h2>
+    <!-- Filtres par type -->
+    <div class="filter-tabs" style="margin-bottom:0;">
+      <a href="?type=all" class="filter-tab {% if active_type=='all' %}active{% endif %}">Tout</a>
+      {% for key, label in media_types %}
+        <a href="?type={{ key }}" class="filter-tab {% if active_type==key %}active{% endif %}">{{ label }}</a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Grille des œuvres -->
+  {% if artworks %}
+  <div class="feed-grid">
+    {% for artwork in artworks %}
+    {% set token = make_token(artwork.get_display_path()) %}
+    <div class="artwork-card" onclick="window.location='{{ url_for('artwork_detail', artwork_id=artwork.id) }}'">
+
+      {% if artwork.is_ai_generated %}<span class="ai-badge">✨IA</span>{% endif %}
+      {% if not artwork.is_published %}
+        <span class="sale-badge" style="background:#555;">Privé</span>
+      {% elif artwork.is_for_sale and not artwork.is_sold %}
+        <span class="sale-badge">{% if artwork.price %}{{ '%.0f'|format(artwork.price) }} €{% else %}À vendre{% endif %}</span>
+      {% endif %}
+
+      <div class="media-wrapper">
+        {% if artwork.is_image() %}
+          {% if artwork.watermarked_path %}
+            <img src="{{ url_for('serve_media', subfolder='watermarked', token=token, filename=artwork.watermarked_path) }}"
+                 alt="{{ artwork.title }}" loading="lazy">
+          {% elif artwork.thumbnail_path %}
+            <img src="{{ url_for('serve_media', subfolder='thumbnails', token=make_token(artwork.thumbnail_path), filename=artwork.thumbnail_path) }}"
+                 alt="{{ artwork.title }}" loading="lazy">
+          {% else %}
+            <div style="height:200px;display:flex;align-items:center;justify-content:center;color:var(--text3);">🖼️</div>
+          {% endif %}
+        {% elif artwork.is_audio() %}
+          <div class="audio-placeholder"><span>🎵</span><div class="title">{{ artwork.title }}</div></div>
+        {% elif artwork.is_video() %}
+          <div style="height:180px;display:flex;align-items:center;justify-content:center;background:#0d0d0d;color:var(--text3);"><span style="font-size:2.5rem">▶️</span></div>
+        {% else %}
+          <div style="height:180px;display:flex;align-items:center;justify-content:center;color:var(--text3);">🎨</div>
+        {% endif %}
+        <div class="media-overlay"></div>
+      </div>
+
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="media-type-badge">{{ artwork.get_media_label() }}</span>
+        </div>
+        <div class="card-title">{{ artwork.title }}</div>
+        <div class="card-actions">
+          <span style="font-size:.8rem;color:var(--text3)">🤍 {{ artwork.like_count or 0 }}</span>
+          <span style="font-size:.8rem;color:var(--text3);margin-left:auto">👁 {{ artwork.view_count or 0 }}</span>
+          <a href="{{ url_for('edit_artwork', artwork_id=artwork.id) }}"
+             onclick="event.stopPropagation()"
+             style="font-size:.75rem;color:var(--accent);margin-left:10px;text-decoration:none;">✏️ Modifier</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <!-- État vide : invitation à créer -->
+  <div class="empty-state">
+    <div class="icon">🎨</div>
+    {% if active_type != 'all' %}
+      <h3>Aucune œuvre dans cette catégorie</h3>
+      <p>Tu n'as pas encore publié d'œuvre de ce type.</p>
+      <a href="?type=all" class="btn btn-ghost" style="margin-top:12px;">Voir toutes mes œuvres</a>
+    {% else %}
+      <h3>Tu n'as pas encore publié d'œuvre</h3>
+      <p>Commence à construire ton portfolio en publiant ta première création.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px;">
+        <a href="{{ url_for('upload_artwork') }}" class="btn btn-primary">
+          Déposer mon portfolio
+        </a>
+        <a href="{{ url_for('ai_studio') }}" class="btn btn-ghost">
+          ✨ Créer avec l'IA
+        </a>
+      </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/protect.js') }}"></script>
+{% endblock %}

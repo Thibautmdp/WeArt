@@ -1,0 +1,55 @@
+﻿{% extends 'base.html' %}
+{% block title %}Paiement — WeArt{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page" style="max-width:540px;">
+  <h1 class="section-title">🔒 Paiement sécurisé</h1>
+
+  <div class="card" style="padding:24px;margin-bottom:20px;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+      <span style="color:var(--text2);">{{ artwork.title }}</span>
+      <span style="font-weight:700;color:var(--accent);">{{ '%.2f'|format(order.amount) }} €</span>
+    </div>
+    <div style="font-size:.8rem;color:var(--text3);">{{ 'Œuvre originale' if order.order_type == 'original' else 'Impression' }}</div>
+  </div>
+
+  <div class="card" style="padding:24px;">
+    <div id="payment-element"></div>
+    <button class="btn btn-primary" id="pay-btn" style="width:100%;justify-content:center;margin-top:20px;font-size:1rem;padding:14px;">
+      Payer {{ '%.2f'|format(order.amount) }} €
+    </button>
+    <div id="pay-error" style="display:none;margin-top:12px;" class="flash error"></div>
+  </div>
+
+  <p style="text-align:center;margin-top:16px;font-size:.8rem;color:var(--text3);">
+    Paiement crypté · Propulsé par Stripe · Données bancaires jamais stockées
+  </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+const stripe = Stripe('{{ stripe_public_key }}');
+const elements = stripe.elements({ clientSecret: '{{ client_secret }}' });
+const paymentElement = elements.create('payment');
+paymentElement.mount('#payment-element');
+
+document.getElementById('pay-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('pay-btn');
+  btn.disabled = true; btn.textContent = 'Traitement…';
+  const { error } = await stripe.confirmPayment({
+    elements,
+    confirmParams: { return_url: window.location.origin + '/orders' }
+  });
+  if (error) {
+    document.getElementById('pay-error').textContent = error.message;
+    document.getElementById('pay-error').style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Réessayer';
+  }
+});
+</script>
+{% endblock %}

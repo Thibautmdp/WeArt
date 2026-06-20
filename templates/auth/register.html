@@ -1,0 +1,43 @@
+﻿{% extends 'base.html' %}
+{% block title %}S'inscrire — WeArt{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <h1>WeArt</h1>
+      <p>Rejoins la communauté des artistes</p>
+    </div>
+
+    <h2 class="auth-title">Créer un compte</h2>
+
+    <form method="POST">
+      <div class="form-group">
+        <label class="form-label">Nom d'utilisateur</label>
+        <input class="form-input" type="text" name="username" required
+               placeholder="ex: marie_dupont" maxlength="50"
+               value="{{ request.form.get('username','') }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" name="email" required
+               placeholder="ton@email.com"
+               value="{{ request.form.get('email','') }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mot de passe</label>
+        <input class="form-input" type="password" name="password" required
+               placeholder="Au moins 6 caractères">
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;" type="submit">
+        Créer mon compte
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Déjà un compte ? <a href="{{ url_for('login') }}">Se connecter</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

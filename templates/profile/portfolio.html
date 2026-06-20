@@ -1,0 +1,163 @@
+﻿{% extends 'base.html' %}
+{% block title %}{{ artist.get_name() }} — WeArt{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/feed.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page">
+
+  <!-- Profile header -->
+  <div class="profile-header">
+    <div class="profile-banner"
+         {% if artist.banner_path %}
+         style="background-image:url('{{ url_for('serve_avatar', filename=artist.banner_path) }}');background-size:cover;background-position:center;"
+         {% endif %}>
+    </div>
+    <div class="profile-info">
+      <div class="profile-avatar-wrap">
+        {% if artist.avatar_path and artist.avatar_path != 'default_avatar.jpg' %}
+          <img src="{{ url_for('serve_avatar', filename=artist.avatar_path) }}"
+               class="avatar avatar-xl" alt="{{ artist.get_name() }}">
+        {% else %}
+          <div class="avatar avatar-xl" style="background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:3rem;">👤</div>
+        {% endif %}
+      </div>
+
+      <div class="profile-text">
+        <h1 class="profile-name">
+          {{ artist.get_name() }}
+          {% if artist.is_verified %}<span class="verified-badge" title="Artiste vérifié">✓</span>{% endif %}
+        </h1>
+        <div class="profile-username">@{{ artist.username }}</div>
+        {% if artist.bio %}
+        <div class="profile-bio">{{ artist.bio }}</div>
+        {% endif %}
+        <div class="profile-stats">
+          <span><strong>{{ artworks|length }}</strong> œuvres</span>
+          <span><strong>{{ artist.follower_count() }}</strong> abonnés</span>
+          <span><strong>{{ artist.following_count() }}</strong> abonnements</span>
+        </div>
+        <div class="profile-links">
+          {% if artist.location %}
+            <span class="profile-link">📍 {{ artist.location }}</span>
+          {% endif %}
+          {% if artist.website %}
+            <a href="{{ artist.website }}" class="profile-link" target="_blank" rel="noopener">🌐 Site web</a>
+          {% endif %}
+          {% if artist.instagram_url %}
+            <a href="{{ artist.instagram_url }}" class="profile-link" target="_blank" rel="noopener">📸 Instagram</a>
+          {% endif %}
+          {% if artist.twitter_url %}
+            <a href="{{ artist.twitter_url }}" class="profile-link" target="_blank" rel="noopener">🐦 Twitter</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="profile-actions">
+        {% if current_user.is_authenticated %}
+          {% if current_user.id == artist.id %}
+            <a href="{{ url_for('edit_profile') }}" class="btn btn-ghost">✏️ Modifier le profil</a>
+            <a href="{{ url_for('upload_artwork') }}" class="btn btn-primary">+ Publier une œuvre</a>
+          {% else %}
+            <button class="follow-btn {% if is_following %}following{% endif %}"
+                    id="follow-btn" data-user-id="{{ artist.id }}">
+              {% if is_following %}✓ Abonné{% else %}+ Suivre{% endif %}
+            </button>
+            <a href="{{ url_for('conversation', username=artist.username) }}" class="btn btn-ghost">💬 Message</a>
+          {% endif %}
+        {% else %}
+          <a href="{{ url_for('register') }}" class="btn btn-primary">Rejoindre pour suivre</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter tabs -->
+  <div class="filter-tabs">
+    <a href="?type=all" class="filter-tab {% if active_type=='all' %}active{% endif %}">Tout</a>
+    {% for key, label in media_types %}
+      <a href="?type={{ key }}" class="filter-tab {% if active_type==key %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+    <a href="{{ url_for('marketplace') }}?artist={{ artist.username }}" class="filter-tab" style="margin-left:auto;">
+      🛒 À vendre
+    </a>
+  </div>
+
+  <!-- Artworks grid -->
+  {% if artworks %}
+  <div class="profile-grid">
+    {% for artwork in artworks %}
+    {% set token = make_token(artwork.get_display_path()) %}
+    <a href="{{ url_for('artwork_detail', artwork_id=artwork.id) }}" class="profile-artwork-thumb">
+      {% if artwork.is_image() and artwork.watermarked_path %}
+        <img src="{{ url_for('serve_media', subfolder='watermarked', token=token, filename=artwork.watermarked_path) }}"
+             alt="{{ artwork.title }}" loading="lazy">
+      {% elif artwork.is_image() and artwork.thumbnail_path %}
+        <img src="{{ url_for('serve_media', subfolder='thumbnails', token=make_token(artwork.thumbnail_path), filename=artwork.thumbnail_path) }}"
+             alt="{{ artwork.title }}" loading="lazy">
+      {% elif artwork.is_audio() %}
+        <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a2e,#0f3460);color:var(--accent);">
+          <span style="font-size:2rem;">🎵</span>
+        </div>
+      {% elif artwork.is_video() %}
+        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0d0d0d;">
+          <span style="font-size:2rem;">▶️</span>
+        </div>
+      {% else %}
+        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--bg3);">
+          <span style="font-size:2rem;">🎨</span>
+        </div>
+      {% endif %}
+      <div class="overlay">
+        <div class="overlay-text">
+          {{ artwork.title }}<br>
+          <span style="font-weight:400;font-size:.75rem;">🤍 {{ artwork.like_count or 0 }} · 👁 {{ artwork.view_count or 0 }}</span>
+        </div>
+      </div>
+      {% if artwork.is_ai_generated %}
+      <div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,.7);color:var(--accent);border-radius:4px;padding:2px 7px;font-size:.65rem;font-weight:700;">✨IA</div>
+      {% endif %}
+      {% if artwork.is_for_sale and not artwork.is_sold %}
+      <div style="position:absolute;top:6px;right:6px;background:var(--accent);color:#000;border-radius:4px;padding:2px 7px;font-size:.65rem;font-weight:700;">
+        {% if artwork.price %}{{ '%.0f'|format(artwork.price) }} €{% else %}Vente{% endif %}
+      </div>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">🎨</div>
+    <h3>Aucune œuvre pour l'instant</h3>
+    {% if current_user.is_authenticated and current_user.id == artist.id %}
+    <p>Publie ta première œuvre !</p>
+    <a href="{{ url_for('upload_artwork') }}" class="btn btn-primary" style="margin-top:16px;">+ Publier</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/protect.js') }}"></script>
+<script>
+// Follow button AJAX
+const followBtn = document.getElementById('follow-btn');
+if (followBtn) {
+  followBtn.addEventListener('click', async () => {
+    const userId = followBtn.dataset.userId;
+    const resp = await fetch(`/follow/${userId}`, {
+      method: 'POST',
+      headers: {'X-Requested-With': 'XMLHttpRequest'}
+    });
+    if (resp.ok) {
+      const d = await resp.json();
+      followBtn.textContent = d.is_following ? '✓ Abonné' : '+ Suivre';
+      followBtn.classList.toggle('following', d.is_following);
+    }
+  });
+}
+</script>
+{% endblock %}

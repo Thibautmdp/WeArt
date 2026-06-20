@@ -1,0 +1,69 @@
+﻿{% extends 'base.html' %}
+{% block title %}{% if mode=='buyer' %}Mes commandes{% else %}Mes ventes{% endif %} — WeArt{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <h1 class="section-title">
+    {% if mode == 'buyer' %}📦 Mes commandes{% else %}💰 Mes ventes{% endif %}
+  </h1>
+
+  <div style="display:flex;gap:10px;margin-bottom:24px;">
+    <a href="{{ url_for('my_orders') }}" class="btn {% if mode=='buyer' %}btn-primary{% else %}btn-ghost{% endif %}">📦 Mes commandes</a>
+    <a href="{{ url_for('my_sales') }}" class="btn {% if mode=='seller' %}btn-primary{% else %}btn-ghost{% endif %}">💰 Mes ventes</a>
+  </div>
+
+  {% if orders %}
+  {% for order in orders %}
+  <div class="artwork-row" style="flex-wrap:wrap;gap:10px;">
+    <div class="artwork-row-info" style="min-width:200px;">
+      <div class="artwork-row-title">
+        <a href="{{ url_for('artwork_detail', artwork_id=order.artwork_id) }}">{{ order.artwork.title }}</a>
+      </div>
+      <div class="artwork-row-meta">
+        {% if mode == 'buyer' %}
+          Artiste : <a href="{{ url_for('portfolio', username=order.artwork.artist.username) }}">{{ order.artwork.artist.get_name() }}</a>
+        {% else %}
+          Acheteur : {{ order.buyer.get_name() }}
+          · <a href="{{ url_for('conversation', username=order.buyer.username) }}">💬 Contacter</a>
+        {% endif %}
+        · {{ order.created_at.strftime('%d/%m/%Y') }}
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-weight:700;color:var(--accent);">{{ '%.2f'|format(order.amount) }} €</span>
+      <span class="tag">{{ 'Originale' if order.order_type == 'original' else 'Impression' }}</span>
+      <span style="padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600;
+            {% if order.status == 'paid' %}background:rgba(72,187,120,.15);color:#68d391;
+            {% elif order.status == 'pending' %}background:rgba(237,137,54,.15);color:#f6ad55;
+            {% elif order.status == 'completed' %}background:rgba(99,179,237,.15);color:#90cdf4;
+            {% else %}background:var(--bg3);color:var(--text2);{% endif %}">
+        {% if order.status == 'paid' %}✅ Payé
+        {% elif order.status == 'pending' %}⏳ En attente
+        {% elif order.status == 'completed' %}✓ Terminé
+        {% elif order.status == 'cancelled' %}✗ Annulé
+        {% else %}{{ order.status }}{% endif %}
+      </span>
+    </div>
+    {% if order.shipping_address %}
+    <div style="width:100%;font-size:.8rem;color:var(--text2);padding-left:74px;">
+      📍 {{ order.shipping_address }}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">{% if mode=='buyer' %}📦{% else %}💰{% endif %}</div>
+    <h3>Aucune {% if mode=='buyer' %}commande{% else %}vente{% endif %} pour l'instant</h3>
+    {% if mode == 'buyer' %}
+    <a href="{{ url_for('marketplace') }}" class="btn btn-primary" style="margin-top:16px;">Explorer le marché</a>
+    {% else %}
+    <a href="{{ url_for('upload_artwork') }}" class="btn btn-primary" style="margin-top:16px;">Mettre une œuvre en vente</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

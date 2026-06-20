@@ -1,0 +1,214 @@
+﻿{% extends 'base.html' %}
+{% block title %}Statistiques — WeArt{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+<style>
+.stat-card {
+  background: var(--bg2);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, transform .15s;
+  text-decoration: none;
+  display: block;
+}
+.stat-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.stat-card.active { border-color: var(--accent); background: var(--accent-dim, rgba(201,169,110,.08)); }
+.stat-card .val { font-size: 2rem; font-weight: 800; color: var(--accent); line-height: 1; margin: 6px 0; }
+.stat-card .lbl { font-size: .82rem; color: var(--text2); }
+.row-hidden { display: none !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
+    <h1 class="section-title" style="margin-bottom:0;">Statistiques</h1>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="{{ url_for('upload_artwork') }}" class="btn btn-primary">+ Publier une œuvre</a>
+      <a href="{{ url_for('my_sales') }}" class="btn btn-ghost">🛒 Mes ventes</a>
+      <a href="{{ url_for('edit_profile') }}" class="btn btn-ghost">✏️ Profil</a>
+    </div>
+  </div>
+
+  <!-- Cartes cliquables -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:32px;">
+
+    <div class="stat-card active" id="card-all" onclick="filterArtworks('all')">
+      <div style="font-size:1.8rem;">🎨</div>
+      <div class="val">{{ artworks|length }}</div>
+      <div class="lbl">Total œuvres</div>
+    </div>
+
+    <div class="stat-card" id="card-likes" onclick="filterArtworks('likes')">
+      <div style="font-size:1.8rem;">❤️</div>
+      <div class="val">{{ total_likes }}</div>
+      <div class="lbl">J'aimes reçus</div>
+    </div>
+
+    <div class="stat-card" id="card-views" onclick="filterArtworks('views')">
+      <div style="font-size:1.8rem;">👁</div>
+      <div class="val">{{ total_views }}</div>
+      <div class="lbl">Vues totales</div>
+    </div>
+
+    <div class="stat-card" id="card-earned" onclick="filterArtworks('sold')">
+      <div style="font-size:1.8rem;">💰</div>
+      <div class="val">{{ '%.2f'|format(total_earned) }} €</div>
+      <div class="lbl">Chiffre d'affaires</div>
+    </div>
+
+    <div class="stat-card" id="card-sale" onclick="filterArtworks('for_sale')">
+      <div style="font-size:1.8rem;">🏷️</div>
+      <div class="val">{{ artworks_for_sale }}</div>
+      <div class="lbl">En vente</div>
+    </div>
+
+    <div class="stat-card" id="card-sold" onclick="filterArtworks('sold')">
+      <div style="font-size:1.8rem;">✅</div>
+      <div class="val">{{ artworks_sold }}</div>
+      <div class="lbl">Vendues</div>
+    </div>
+
+  </div>
+
+  <!-- Titre dynamique de la liste -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+    <h2 style="font-size:1.05rem;font-weight:700;" id="list-title">Toutes mes œuvres</h2>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span style="font-size:.8rem;color:var(--text2);">Trier par :</span>
+      <button onclick="sortArtworks('date')" class="btn btn-ghost btn-sm" id="sort-date" style="padding:4px 10px;">Date ↓</button>
+      <button onclick="sortArtworks('likes')" class="btn btn-ghost btn-sm" id="sort-likes" style="padding:4px 10px;">J'aimes</button>
+      <button onclick="sortArtworks('views')" class="btn btn-ghost btn-sm" id="sort-views" style="padding:4px 10px;">Vues</button>
+    </div>
+  </div>
+
+  <!-- Liste des œuvres -->
+  {% if artworks %}
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;" id="artwork-list">
+    {% for artwork in artworks %}
+    <div class="artwork-row"
+         id="row-{{ artwork.id }}"
+         data-status="{% if artwork.is_sold %}sold{% elif artwork.is_for_sale %}for_sale{% else %}none{% endif %}"
+         data-likes="{{ artwork.like_count or 0 }}"
+         data-views="{{ artwork.view_count or 0 }}"
+         style="border-bottom:{% if not loop.last %}1px solid var(--border){% else %}none{% endif %};margin:0;border-radius:0;padding:14px 16px;">
+
+      {% if artwork.thumbnail_path %}
+      <img class="artwork-row-thumb"
+           src="/media/thumbnails/{{ make_token(artwork.thumbnail_path) }}/{{ artwork.thumbnail_path }}"
+           alt="{{ artwork.title }}">
+      {% else %}
+      <div class="artwork-row-thumb" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:var(--bg3);">
+        {% if artwork.is_audio() %}🎵{% elif artwork.is_video() %}▶️{% else %}🎨{% endif %}
+      </div>
+      {% endif %}
+
+      <div class="artwork-row-info" style="flex:1;">
+        <div class="artwork-row-title">{{ artwork.title }}</div>
+        <div class="artwork-row-meta" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;font-size:.8rem;color:var(--text2);">
+          <span>{{ artwork.get_media_label() }}</span>
+          <span>❤️ {{ artwork.like_count or 0 }}</span>
+          <span>👁 {{ artwork.view_count or 0 }}</span>
+          <span>{{ artwork.created_at.strftime('%d/%m/%Y') }}</span>
+          {% if not artwork.is_published %}<span style="color:#fc8181;">⚫ Privé</span>{% endif %}
+          {% if artwork.is_sold %}
+            <span style="color:#68d391;font-weight:600;">✅ Vendu · {{ '%.0f'|format(artwork.price or 0) }} €</span>
+          {% elif artwork.is_for_sale %}
+            <span style="color:var(--accent);font-weight:600;">🏷️ En vente · {{ '%.0f'|format(artwork.price or 0) }} €</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="artwork-row-actions" style="gap:6px;">
+        <a href="{{ url_for('artwork_detail', artwork_id=artwork.id) }}" class="btn btn-ghost btn-sm">Voir</a>
+        <a href="{{ url_for('edit_artwork', artwork_id=artwork.id) }}" class="btn btn-ghost btn-sm">✏️ Modifier</a>
+        {% if not artwork.is_for_sale and not artwork.is_sold %}
+        <a href="{{ url_for('edit_artwork', artwork_id=artwork.id) }}" class="btn btn-primary btn-sm"
+           title="Mettre en vente">🏷️ Vendre</a>
+        {% endif %}
+        <form action="{{ url_for('delete_artwork', artwork_id=artwork.id) }}" method="POST"
+              onsubmit="return confirm('Supprimer définitivement ?')" style="margin:0;">
+          <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <p id="empty-msg" style="display:none;text-align:center;padding:24px;color:var(--text3);">
+    Aucune œuvre dans cette catégorie.
+  </p>
+
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">🎨</div>
+    <h3>Aucune œuvre publiée</h3>
+    <a href="{{ url_for('upload_artwork') }}" class="btn btn-primary" style="margin-top:16px;">Publier ma première œuvre</a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const titles = {
+  all: 'Toutes mes œuvres',
+  likes: 'Triées par j\'aimes',
+  views: 'Triées par vues',
+  for_sale: 'Œuvres en vente',
+  sold: 'Œuvres vendues'
+};
+
+function filterArtworks(mode) {
+  // Mise à jour cartes actives
+  document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+  const cardMap = { all: 'card-all', likes: 'card-likes', views: 'card-views', for_sale: 'card-sale', sold: 'card-sold' };
+  if (cardMap[mode]) document.getElementById(cardMap[mode])?.classList.add('active');
+
+  // Titre
+  document.getElementById('list-title').textContent = titles[mode] || 'Mes œuvres';
+
+  const rows = document.querySelectorAll('#artwork-list .artwork-row');
+  let visible = 0;
+  rows.forEach(row => {
+    const status = row.dataset.status;
+    let show = false;
+    if (mode === 'all' || mode === 'likes' || mode === 'views') show = true;
+    else if (mode === 'for_sale') show = status === 'for_sale';
+    else if (mode === 'sold') show = status === 'sold';
+    row.classList.toggle('row-hidden', !show);
+    if (show) visible++;
+  });
+
+  document.getElementById('empty-msg').style.display = visible === 0 ? 'block' : 'none';
+
+  // Auto-trier selon le mode
+  if (mode === 'likes') sortArtworks('likes', false);
+  else if (mode === 'views') sortArtworks('views', false);
+}
+
+function sortArtworks(by, updateButtons = true) {
+  if (updateButtons) {
+    ['sort-date','sort-likes','sort-views'].forEach(id => {
+      document.getElementById(id).style.borderColor = '';
+      document.getElementById(id).style.color = '';
+    });
+    document.getElementById('sort-' + by).style.borderColor = 'var(--accent)';
+    document.getElementById('sort-' + by).style.color = 'var(--accent)';
+  }
+
+  const list = document.getElementById('artwork-list');
+  const rows = Array.from(list.querySelectorAll('.artwork-row'));
+  rows.sort((a, b) => {
+    if (by === 'likes') return parseInt(b.dataset.likes) - parseInt(a.dataset.likes);
+    if (by === 'views') return parseInt(b.dataset.views) - parseInt(a.dataset.views);
+    return 0; // date : ordre original
+  });
+  rows.forEach(r => list.appendChild(r));
+}
+</script>
+{% endblock %}

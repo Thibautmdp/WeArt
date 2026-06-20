@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mon Portfolio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Mon Nom</h1>
+            <p>Photographe</p>
+        </header>
+        <main>
+            <div class="galerie">
+                {% for photo in photos %}
+                <img src="{{ photo.url_image }}" alt="{{ photo.titre }}">
+                {% endfor %}
+            </div>
+        </main>
+        <footer>
+            <p>&copy; 2026 Mon Nom. Tous droits réservés.</p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,72 @@
+﻿{% extends 'base.html' %}
+{% block title %}Acheter {{ artwork.title }} — WeArt{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page" style="max-width:680px;">
+  <a href="{{ url_for('artwork_detail', artwork_id=artwork.id) }}" style="color:var(--text2);font-size:.85rem;">← Retour à l'œuvre</a>
+  <h1 class="section-title" style="margin-top:16px;">🛒 Acheter une œuvre</h1>
+
+  <!-- Artwork summary -->
+  <div class="card" style="padding:20px;margin-bottom:20px;display:flex;gap:16px;align-items:center;">
+    {% if artwork.is_image() and artwork.thumbnail_path %}
+    {% set token = make_token(artwork.thumbnail_path) %}
+    <img src="{{ url_for('serve_media', subfolder='thumbnails', token=token, filename=artwork.thumbnail_path) }}"
+         style="width:80px;height:80px;object-fit:cover;border-radius:8px;" alt="{{ artwork.title }}">
+    {% else %}
+    <div style="width:80px;height:80px;background:var(--bg3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem;">🎨</div>
+    {% endif %}
+    <div>
+      <div style="font-weight:700;font-size:1rem;">{{ artwork.title }}</div>
+      <div style="color:var(--text2);font-size:.85rem;">par <a href="{{ url_for('portfolio', username=artwork.artist.username) }}">{{ artwork.artist.get_name() }}</a></div>
+    </div>
+  </div>
+
+  <form method="POST">
+    <!-- Order type -->
+    <div class="card" style="padding:20px;margin-bottom:16px;">
+      <h3 style="margin-bottom:14px;font-size:1rem;">Que souhaitez-vous acheter ?</h3>
+
+      {% if artwork.price %}
+      <label class="form-checkbox" style="padding:14px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;display:flex;">
+        <input type="radio" name="order_type" value="original" checked>
+        <div style="margin-left:12px;">
+          <div style="font-weight:600;">Œuvre originale</div>
+          <div style="color:var(--text2);font-size:.85rem;">L'original unique · {{ '%.2f'|format(artwork.price) }} €</div>
+        </div>
+      </label>
+      {% endif %}
+
+      {% if artwork.print_available and artwork.print_price %}
+      <label class="form-checkbox" style="padding:14px;border:1px solid var(--border);border-radius:8px;display:flex;">
+        <input type="radio" name="order_type" value="print" {% if not artwork.price %}checked{% endif %}>
+        <div style="margin-left:12px;">
+          <div style="font-weight:600;">Impression</div>
+          <div style="color:var(--text2);font-size:.85rem;">Reproduction haute qualité · {{ '%.2f'|format(artwork.print_price) }} €</div>
+        </div>
+      </label>
+      {% endif %}
+    </div>
+
+    <!-- Address -->
+    <div class="form-group">
+      <label class="form-label">Adresse de livraison (pour les œuvres physiques)</label>
+      <textarea class="form-textarea" name="shipping_address" rows="3"
+                placeholder="Nom · Rue · Code postal · Ville · Pays"></textarea>
+    </div>
+
+    <div class="card" style="padding:16px;margin-bottom:20px;background:var(--accent-dim);border-color:rgba(201,169,110,.2);">
+      <p style="font-size:.85rem;color:var(--text2);">
+        🔒 Paiement sécurisé par <strong style="color:var(--accent);">Stripe</strong>.
+        Après validation, l'artiste sera notifié et vous contactera pour la livraison.
+      </p>
+    </div>
+
+    <button class="btn btn-primary" style="width:100%;justify-content:center;font-size:1rem;padding:14px;" type="submit">
+      🔒 Procéder au paiement
+    </button>
+  </form>
+</div>
+{% endblock %}

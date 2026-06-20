@@ -1,0 +1,62 @@
+﻿{% extends 'base.html' %}
+{% block title %}Notifications — WeArt{% endblock %}
+
+{% block content %}
+<div class="page" style="max-width:680px;">
+  <h1 class="section-title">🔔 Notifications</h1>
+
+  {% if notifications %}
+  <div style="display:flex;flex-direction:column;gap:8px;">
+    {% for notif in notifications %}
+    {% set actor = notif.actor %}
+    <div class="card" style="padding:14px 18px;display:flex;align-items:center;gap:12px;
+         {% if not notif.is_read %}border-color:rgba(201,169,110,.3);background:rgba(201,169,110,.05);{% endif %}">
+
+      <span style="font-size:1.4rem;flex-shrink:0;">
+        {% if notif.type == 'like' %}❤️
+        {% elif notif.type == 'comment' %}💬
+        {% elif notif.type == 'follow' %}👤
+        {% elif notif.type == 'message' %}📩
+        {% elif notif.type == 'sale' %}💰
+        {% elif notif.type == 'reply' %}↩️
+        {% else %}🔔{% endif %}
+      </span>
+
+      <div style="flex:1;">
+        <div style="font-size:.88rem;color:var(--text);">
+          {% if actor %}
+          <a href="{{ url_for('portfolio', username=actor.username) }}" style="font-weight:600;">{{ actor.get_name() }}</a>
+          {% endif %}
+          {% if notif.type == 'like' %} a aimé ton œuvre
+          {% elif notif.type == 'comment' %} a commenté ton œuvre
+          {% elif notif.type == 'follow' %} s'est abonné à toi
+          {% elif notif.type == 'message' %} t'a envoyé un message
+          {% elif notif.type == 'sale' %} veut acheter ton œuvre
+          {% elif notif.type == 'reply' %} a répondu à ton commentaire
+          {% else %} a interagi avec toi{% endif %}
+          {% if notif.artwork %}
+          « <a href="{{ url_for('artwork_detail', artwork_id=notif.artwork.id) }}" style="color:var(--accent);">{{ notif.artwork.title }}</a> »
+          {% endif %}
+        </div>
+        <div style="font-size:.75rem;color:var(--text3);margin-top:2px;">
+          {{ notif.created_at.strftime('%d/%m/%Y à %H:%M') }}
+        </div>
+      </div>
+
+      {% if notif.type == 'message' and actor %}
+      <a href="{{ url_for('conversation', username=actor.username) }}" class="btn btn-ghost btn-sm">Répondre</a>
+      {% elif notif.artwork %}
+      <a href="{{ url_for('artwork_detail', artwork_id=notif.artwork.id) }}" class="btn btn-ghost btn-sm">Voir</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">🔔</div>
+    <h3>Aucune notification</h3>
+    <p>Les likes, commentaires et abonnements apparaîtront ici.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

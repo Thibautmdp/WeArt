@@ -1,0 +1,110 @@
+﻿{% extends 'base.html' %}
+{% block title %}Studio IA — WeArt{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <h1 class="section-title">✨ Studio <span>IA</span></h1>
+  <p style="color:var(--text2);margin-bottom:28px;">
+    Décris ce que tu veux créer, l'IA génère une image ou une musique. Tu peux ensuite la sauvegarder dans ton portfolio.
+  </p>
+
+  <div class="ai-studio-layout">
+
+    <!-- Left: controls -->
+    <div>
+      <div class="card" style="padding:24px;">
+
+        <!-- Type selector -->
+        <div class="form-group">
+          <label class="form-label">Type de création</label>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" id="btn-image" onclick="setType('image')">🖼️ Image</button>
+            <button class="btn btn-ghost" id="btn-music" onclick="setType('music')">🎵 Musique</button>
+          </div>
+          <input type="hidden" id="gen-type" value="image">
+        </div>
+
+        <!-- Prompt -->
+        <div class="form-group">
+          <label class="form-label">Décris ta création</label>
+          <textarea class="form-textarea" id="prompt-input" rows="5"
+                    placeholder="Ex: Un paysage montagneux au coucher du soleil, style impressionniste, tons orangés et violets…"></textarea>
+          <div class="form-hint" id="prompt-hint">Sois précis : style, couleurs, ambiance, sujet.</div>
+        </div>
+
+        <!-- Examples -->
+        <div style="margin-bottom:16px;">
+          <div style="font-size:.8rem;color:var(--text2);margin-bottom:8px;">Exemples :</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;" id="examples-image">
+            <button class="filter-tab" onclick="setPrompt('Portrait d\'une femme africaine aux yeux dorés, style peinture à l\'huile baroque')">Portrait baroque</button>
+            <button class="filter-tab" onclick="setPrompt('Ville futuriste sous la pluie, néons bleus et rouges, style cyberpunk')">Cyberpunk</button>
+            <button class="filter-tab" onclick="setPrompt('Forêt enchantée avec des champignons lumineux, ambiance féerique, couleurs pastel')">Forêt féerique</button>
+            <button class="filter-tab" onclick="setPrompt('Chat astronaute dans l\'espace, peinture numérique détaillée, style cartoon')">Chat astronaute</button>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;display:none;" id="examples-music">
+            <button class="filter-tab" onclick="setPrompt('Musique jazz apaisante, piano et contrebasse, ambiance nocturne')">Jazz nocturne</button>
+            <button class="filter-tab" onclick="setPrompt('Lo-fi hip-hop calme pour étudier, beats doux et mélodiques')">Lo-fi study</button>
+            <button class="filter-tab" onclick="setPrompt('Musique épique orchestrale pour trailer de film d\'action')">Épique</button>
+            <button class="filter-tab" onclick="setPrompt('Ambient électronique méditatif, sons de nature et synthétiseurs doux')">Ambient</button>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="generate-btn" style="width:100%;justify-content:center;font-size:1rem;padding:12px;"
+                onclick="generate()">
+          ✨ Générer
+        </button>
+
+        <!-- Error message -->
+        <div id="gen-error" style="display:none;margin-top:12px;" class="flash error"></div>
+      </div>
+
+      <!-- Save form (hidden until generated) -->
+      <div class="card" style="padding:20px;margin-top:16px;display:none;" id="save-panel">
+        <h3 style="margin-bottom:14px;font-size:1rem;">💾 Sauvegarder dans mon portfolio</h3>
+        <div class="form-group">
+          <label class="form-label">Titre de l'œuvre</label>
+          <input class="form-input" type="text" id="save-title" placeholder="Donne un titre à ta création">
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-primary" onclick="saveToPortfolio()">💾 Sauvegarder</button>
+          <button class="btn btn-ghost" onclick="generate()">🔄 Régénérer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: result -->
+    <div>
+      <div class="ai-result-frame" id="result-frame">
+        <div class="ai-result-placeholder" id="result-placeholder">
+          <div class="icon">✨</div>
+          <p>Ton œuvre apparaîtra ici</p>
+        </div>
+        <!-- spinner (hidden) -->
+        <div id="result-spinner" style="display:none;flex-direction:column;align-items:center;gap:16px;">
+          <div class="spinner"></div>
+          <p style="color:var(--text2);font-size:.9rem;" id="spinner-text">Génération en cours…</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tips -->
+  <div style="margin-top:28px;padding:20px;background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border);">
+    <h3 style="font-size:.95rem;margin-bottom:10px;">💡 Conseils pour de meilleures créations</h3>
+    <ul style="color:var(--text2);font-size:.85rem;padding-left:20px;line-height:2;">
+      <li>Pour les images : précise le style artistique (huile, aquarelle, photographie, art numérique, etc.)</li>
+      <li>Pour la musique : décris le genre, l'ambiance, les instruments et l'usage (pour étudier, pour danser…)</li>
+      <li>Ajoute des détails de couleurs, d'éclairage, de perspective pour les images</li>
+      <li>La génération peut prendre 20 à 60 secondes — sois patient !</li>
+      <li>Toutes tes créations IA seront marquées "✨ IA" dans ton portfolio</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/ai-studio.js') }}"></script>
+{% endblock %}
