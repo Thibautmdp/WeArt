@@ -15,8 +15,8 @@
 }
 .artwork-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(0,0,0,.6);
-  border-color: rgba(201,169,110,.25);
+  box-shadow: 0 20px 40px rgba(0,0,0,.6), 0 0 12px rgba(255,255,255,.15), inset 0 0 0 1px rgba(255,255,255,.25);
+  border-color: rgba(255,255,255,.3);
 }
 
 /* media wrapper — blocks right-click / drag */
