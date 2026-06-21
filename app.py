@@ -19,7 +19,8 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.utils import secure_filename
 from config import Config, UPLOAD_FOLDER
 from models import (db, User, Artwork, Follow, Like, Comment,
-                    Message, Notification, Order, PasswordReset, CreationStep, MEDIA_TYPES)
+                    Message, Notification, Order, PasswordReset, CreationStep,
+                    Service, MEDIA_TYPES, SERVICE_CATEGORIES)
 from utils.watermark import apply_watermark, generate_thumbnail
 from utils.ai_generate import generate_image_pollinations, generate_image_hf, generate_music_hf
 
@@ -786,6 +787,71 @@ def marketplace():
                            media_types=MEDIA_TYPES,
                            active_type=media_type,
                            make_token=make_media_token)
+
+
+@app.route('/marketplace/services')
+def marketplace_services():
+    category = request.args.get('category', 'all')
+    query = Service.query.filter_by(is_active=True)
+    if category != 'all':
+        query = query.filter_by(category=category)
+    services = query.order_by(Service.created_at.desc()).all()
+    return render_template('marketplace/services.html',
+                           services=services,
+                           categories=SERVICE_CATEGORIES,
+                           active_category=category)
+
+
+@app.route('/services/create', methods=['GET', 'POST'])
+@login_required
+def create_service():
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+        category = request.form.get('category', 'other')
+        price = request.form.get('price', '0')
+        delivery_days = request.form.get('delivery_days', '7')
+        if not title or not description:
+            flash('Titre et description sont obligatoires.', 'error')
+            return redirect(request.url)
+        try:
+            price = float(price)
+            delivery_days = int(delivery_days)
+        except ValueError:
+            flash('Prix ou délai invalide.', 'error')
+            return redirect(request.url)
+        service = Service(
+            artist_id=current_user.id,
+            title=title,
+            description=description,
+            category=category,
+            price=price,
+            delivery_days=delivery_days,
+        )
+        db.session.add(service)
+        db.session.commit()
+        flash('Service publié avec succès !', 'success')
+        return redirect(url_for('service_detail', service_id=service.id))
+    return render_template('marketplace/create_service.html', categories=SERVICE_CATEGORIES)
+
+
+@app.route('/services/<int:service_id>')
+def service_detail(service_id):
+    service = Service.query.get_or_404(service_id)
+    return render_template('marketplace/service_detail.html', service=service)
+
+
+@app.route('/services/<int:service_id>/delete', methods=['POST'])
+@login_required
+def delete_service(service_id):
+    service = Service.query.get_or_404(service_id)
+    if service.artist_id != current_user.id:
+        flash('Action non autorisée.', 'error')
+        return redirect(url_for('marketplace_services'))
+    db.session.delete(service)
+    db.session.commit()
+    flash('Service supprimé.', 'success')
+    return redirect(url_for('marketplace_services'))
 
 
 @app.route('/artwork/<int:artwork_id>/buy', methods=['GET', 'POST'])

@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}{{ service.title }} — WeArt{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/feed.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page" style="max-width:800px;">
+
+  <a href="{{ url_for('marketplace_services') }}" style="display:inline-flex;align-items:center;gap:6px;color:var(--text2);text-decoration:none;font-size:.88rem;margin-bottom:20px;">
+    ← Retour aux services
+  </a>
+
+  <div style="display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start;">
+
+    <!-- Détail gauche -->
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <span style="font-size:.8rem;font-weight:600;color:var(--accent);background:rgba(201,169,110,.12);padding:4px 12px;border-radius:99px;">
+          🛠️ {{ service.get_category_label() }}
+        </span>
+      </div>
+      <h1 style="font-size:1.8rem;font-weight:800;line-height:1.25;margin-bottom:20px;">{{ service.title }}</h1>
+
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px;">
+        <h2 style="font-size:1rem;font-weight:700;margin-bottom:12px;color:var(--text2);">Description du service</h2>
+        <p style="line-height:1.8;color:var(--text);white-space:pre-wrap;">{{ service.description }}</p>
+      </div>
+
+      <!-- Artiste -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;">
+        <h2 style="font-size:.9rem;font-weight:700;margin-bottom:14px;color:var(--text2);">À propos de l'artiste</h2>
+        <a href="{{ url_for('portfolio', username=service.artist.username) }}"
+           style="display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--text);">
+          {% if service.artist.avatar_path and service.artist.avatar_path != 'default_avatar.jpg' %}
+            <img src="{{ url_for('serve_avatar', filename=service.artist.avatar_path) }}"
+                 style="width:52px;height:52px;border-radius:50%;object-fit:cover;">
+          {% else %}
+            <span style="font-size:2.5rem;">👤</span>
+          {% endif %}
+          <div>
+            <div style="font-weight:700;font-size:1rem;">{{ service.artist.get_name() }}</div>
+            <div style="font-size:.82rem;color:var(--text3);">@{{ service.artist.username }}</div>
+            {% if service.artist.bio %}
+            <div style="font-size:.83rem;color:var(--text2);margin-top:4px;line-height:1.5;">{{ service.artist.bio[:120] }}{% if service.artist.bio|length > 120 %}…{% endif %}</div>
+            {% endif %}
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Panneau de commande droite -->
+    <div style="position:sticky;top:80px;">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;">
+        <div style="font-size:2rem;font-weight:900;color:var(--accent);margin-bottom:4px;">
+          {{ '%.0f'|format(service.price) }} €
+        </div>
+        <div style="font-size:.85rem;color:var(--text3);margin-bottom:20px;">
+          ⏱ Livraison en {{ service.delivery_days }} jour{{ 's' if service.delivery_days > 1 }}
+        </div>
+
+        {% if current_user.is_authenticated %}
+          {% if current_user.id != service.artist_id %}
+          <a href="{{ url_for('conversation', username=service.artist.username) }}?service={{ service.id }}"
+             class="btn btn-primary" style="width:100%;text-align:center;display:block;padding:13px;font-size:.95rem;font-weight:700;">
+            💬 Contacter l'artiste
+          </a>
+          <p style="font-size:.78rem;color:var(--text3);text-align:center;margin-top:10px;line-height:1.5;">
+            Discute des détails avec l'artiste avant de commander
+          </p>
+          {% else %}
+          <div style="font-size:.85rem;color:var(--text2);text-align:center;padding:12px;background:var(--bg3);border-radius:8px;margin-bottom:12px;">
+            C'est votre service
+          </div>
+          <form method="POST" action="{{ url_for('delete_service', service_id=service.id) }}"
+                onsubmit="return confirm('Supprimer ce service ?')">
+            <button type="submit" class="btn btn-ghost" style="width:100%;color:#e05;border-color:#e05;">
+              Supprimer le service
+            </button>
+          </form>
+          {% endif %}
+        {% else %}
+        <a href="{{ url_for('login') }}" class="btn btn-primary" style="width:100%;text-align:center;display:block;padding:13px;">
+          Se connecter pour commander
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

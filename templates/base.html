@@ -24,7 +24,7 @@
   <div class="nav-links">
     <a href="{{ url_for('feed') }}" class="nav-link {% if request.endpoint == 'feed' %}active{% endif %}">Accueil</a>
     <a href="{{ url_for('explore') }}" class="nav-link {% if request.endpoint == 'explore' %}active{% endif %}">Explorer</a>
-    <a href="{{ url_for('marketplace') }}" class="nav-link {% if request.endpoint == 'marketplace' %}active{% endif %}">Marché</a>
+    <a href="{{ url_for('marketplace') }}" class="nav-link {% if request.endpoint in ('marketplace','marketplace_services') %}active{% endif %}">Marché</a>
 
     {% if current_user.is_authenticated %}
       <a href="{{ url_for('ai_studio') }}" class="nav-link {% if request.endpoint == 'ai_studio' %}active{% endif %}">✨ Studio IA</a>

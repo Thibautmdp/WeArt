@@ -207,6 +207,35 @@ class CreationStep(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+SERVICE_CATEGORIES = [
+    ('commission', 'Commande personnalisée'),
+    ('illustration', 'Illustration'),
+    ('photo_edit', 'Retouche photo'),
+    ('music', 'Création musicale'),
+    ('graphic_design', 'Design graphique'),
+    ('video_edit', 'Montage vidéo'),
+    ('lesson', 'Cours / Tutorat'),
+    ('other', 'Autre'),
+]
+
+
+class Service(db.Model):
+    __tablename__ = 'service'
+    id = db.Column(db.Integer, primary_key=True)
+    artist_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    title = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(50), nullable=False, default='other')
+    price = db.Column(db.Float, nullable=False)
+    delivery_days = db.Column(db.Integer, default=7)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    artist = db.relationship('User', backref='services')
+
+    def get_category_label(self):
+        return dict(SERVICE_CATEGORIES).get(self.category, self.category)
+
+
 class Order(db.Model):
     __tablename__ = 'order'
     id = db.Column(db.Integer, primary_key=True)

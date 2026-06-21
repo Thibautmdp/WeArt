@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Services — WeArt{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/feed.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <h1 class="section-title">🛠️ <span>Services</span> des artistes</h1>
+
+  <!-- Onglets Œuvres / Services -->
+  <div style="display:flex;gap:8px;margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:0;">
+    <a href="{{ url_for('marketplace') }}"
+       style="padding:10px 22px;font-weight:600;font-size:.95rem;text-decoration:none;border-radius:8px 8px 0 0;color:var(--text2);">
+      🎨 Œuvres
+    </a>
+    <a href="{{ url_for('marketplace_services') }}"
+       style="padding:10px 22px;font-weight:700;font-size:.95rem;text-decoration:none;border-radius:8px 8px 0 0;border:1px solid var(--border);border-bottom:none;background:var(--bg);color:var(--accent);margin-bottom:-1px;">
+      🛠️ Services
+    </a>
+    {% if current_user.is_authenticated %}
+    <a href="{{ url_for('create_service') }}"
+       style="margin-left:auto;padding:8px 18px;font-size:.85rem;font-weight:600;text-decoration:none;border-radius:8px;background:rgba(201,169,110,.15);color:var(--accent);border:1px solid rgba(201,169,110,.3);align-self:center;">
+      + Proposer un service
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- Filtre par catégorie -->
+  <div class="filter-tabs">
+    <a href="{{ url_for('marketplace_services') }}" class="filter-tab {% if active_category=='all' %}active{% endif %}">✦ Tout</a>
+    {% for key, label in categories %}
+      <a href="{{ url_for('marketplace_services') }}?category={{ key }}" class="filter-tab {% if active_category==key %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  {% if services %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;">
+    {% for service in services %}
+    <a href="{{ url_for('service_detail', service_id=service.id) }}"
+       style="display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;text-decoration:none;color:var(--text);transition:border-color .2s,box-shadow .2s;"
+       onmouseenter="this.style.borderColor='var(--accent)';this.style.boxShadow='0 4px 20px rgba(201,169,110,.12)'"
+       onmouseleave="this.style.borderColor='var(--border)';this.style.boxShadow=''">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <span style="font-size:1.6rem;">🛠️</span>
+        <span style="font-size:.78rem;font-weight:600;color:var(--accent);background:rgba(201,169,110,.12);padding:3px 10px;border-radius:99px;">
+          {{ service.get_category_label() }}
+        </span>
+      </div>
+      <div style="font-size:1.05rem;font-weight:700;margin-bottom:8px;line-height:1.3;">{{ service.title }}</div>
+      <div style="font-size:.85rem;color:var(--text2);line-height:1.6;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;">
+        {{ service.description }}
+      </div>
+      <div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:14px;">
+        <div>
+          <div style="font-size:1.2rem;font-weight:800;color:var(--accent);">{{ '%.0f'|format(service.price) }} €</div>
+          <div style="font-size:.75rem;color:var(--text3);">Livraison {{ service.delivery_days }} jour{{ 's' if service.delivery_days > 1 }}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          {% if service.artist.avatar_path and service.artist.avatar_path != 'default_avatar.jpg' %}
+            <img src="{{ url_for('serve_avatar', filename=service.artist.avatar_path) }}"
+                 style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
+          {% else %}
+            <span style="font-size:1.1rem;">👤</span>
+          {% endif %}
+          <span style="font-size:.82rem;color:var(--text2);">{{ service.artist.get_name() }}</span>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">🛠️</div>
+    <h3>Aucun service disponible</h3>
+    <p>Sois le premier à proposer tes services à la communauté.</p>
+    {% if current_user.is_authenticated %}
+    <a href="{{ url_for('create_service') }}" class="btn btn-primary" style="margin-top:16px;">+ Proposer un service</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

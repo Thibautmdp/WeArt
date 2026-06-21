@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Proposer un service — WeArt{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page" style="max-width:640px;">
+
+  <a href="{{ url_for('marketplace_services') }}" style="display:inline-flex;align-items:center;gap:6px;color:var(--text2);text-decoration:none;font-size:.88rem;margin-bottom:20px;">
+    ← Retour aux services
+  </a>
+
+  <h1 class="section-title">🛠️ Proposer un service</h1>
+  <p style="color:var(--text2);margin-bottom:28px;">Décris ce que tu peux offrir à la communauté WeArt.</p>
+
+  <form method="POST" action="{{ url_for('create_service') }}">
+
+    <div class="form-group">
+      <label class="form-label">Titre du service *</label>
+      <input type="text" name="title" class="form-input" required maxlength="150"
+             placeholder="Ex : Illustration personnalisée en aquarelle">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Catégorie *</label>
+      <select name="category" class="form-input" required>
+        {% for key, label in categories %}
+        <option value="{{ key }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Description *</label>
+      <textarea name="description" class="form-input" rows="6" required
+                placeholder="Décris précisément ce que tu proposes, ce qui est inclus, tes conditions…"></textarea>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="form-group">
+        <label class="form-label">Prix (€) *</label>
+        <input type="number" name="price" class="form-input" required min="1" step="0.01"
+               placeholder="50">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Délai de livraison (jours) *</label>
+        <input type="number" name="delivery_days" class="form-input" required min="1" max="365"
+               value="7" placeholder="7">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:8px;">
+      <button type="submit" class="btn btn-primary" style="flex:1;padding:13px;">
+        Publier le service
+      </button>
+      <a href="{{ url_for('marketplace_services') }}" class="btn btn-ghost" style="padding:13px 24px;">
+        Annuler
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -7,7 +7,24 @@
 {% block content %}
 <div class="page">
   <h1 class="section-title">🛒 <span>Marché</span> des artistes</h1>
-  <p style="color:var(--text2);margin-bottom:24px;">Achète des œuvres originales directement auprès des artistes.</p>
+
+  <!-- Onglets Œuvres / Services -->
+  <div style="display:flex;gap:8px;margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:0;">
+    <a href="{{ url_for('marketplace') }}"
+       style="padding:10px 22px;font-weight:700;font-size:.95rem;text-decoration:none;border-radius:8px 8px 0 0;border:1px solid var(--border);border-bottom:none;background:var(--bg);color:var(--accent);margin-bottom:-1px;">
+      🎨 Œuvres
+    </a>
+    <a href="{{ url_for('marketplace_services') }}"
+       style="padding:10px 22px;font-weight:600;font-size:.95rem;text-decoration:none;border-radius:8px 8px 0 0;color:var(--text2);">
+      🛠️ Services
+    </a>
+    {% if current_user.is_authenticated %}
+    <a href="{{ url_for('create_service') }}"
+       style="margin-left:auto;padding:8px 18px;font-size:.85rem;font-weight:600;text-decoration:none;border-radius:8px;background:rgba(201,169,110,.15);color:var(--accent);border:1px solid rgba(201,169,110,.3);align-self:center;">
+      + Proposer un service
+    </a>
+    {% endif %}
+  </div>
 
   <!-- Filter tabs -->
   <div class="filter-tabs">
