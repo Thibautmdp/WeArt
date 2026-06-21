@@ -5,14 +5,15 @@ Lance avec : python rewatermark.py
 import os
 import sys
 
-# Ajouter le dossier du projet au path
-sys.path.insert(0, os.path.dirname(__file__))
+# Ajouter le dossier racine du projet au path
+ROOT = os.path.dirname(os.path.dirname(__file__))
+sys.path.insert(0, ROOT)
 
 from app import app, db
 from models import Artwork, User
 from utils.watermark import apply_watermark
 
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
+UPLOAD_FOLDER = os.path.join(ROOT, 'uploads')
 
 def rewatermark_all():
     with app.app_context():
