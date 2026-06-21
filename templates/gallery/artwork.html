@@ -36,6 +36,7 @@
           {% if artwork.file_path %}
           {% set video_token = make_token(artwork.file_path) %}
           <video controls width="100%"
+                 style="display:block;pointer-events:auto;position:relative;z-index:1;"
                  src="{{ url_for('serve_media', subfolder='video', token=video_token, filename=artwork.file_path) }}">
           </video>
           {% endif %}

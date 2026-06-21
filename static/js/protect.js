@@ -23,7 +23,7 @@
     }
   });
 
-  // CSS injection: user-select:none on all artwork images
+  // CSS injection: protect images only — never block video/audio native controls
   const style = document.createElement('style');
   style.textContent = `
     .media-wrapper img,
@@ -34,14 +34,18 @@
       pointer-events: none;
       -webkit-touch-callout: none;
     }
+    .media-wrapper video,
+    .artwork-media-frame video,
+    .media-wrapper audio,
+    .artwork-media-frame audio {
+      pointer-events: auto !important;
+      user-select: auto !important;
+      -webkit-user-select: auto !important;
+    }
     .media-overlay {
       position: absolute;
       inset: 0;
       z-index: 2;
-    }
-    .media-wrapper, .artwork-media-frame, .profile-artwork-thumb {
-      -webkit-user-select: none;
-      user-select: none;
     }
   `;
   document.head.appendChild(style);
