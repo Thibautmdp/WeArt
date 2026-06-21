@@ -8,19 +8,61 @@
 <div class="page">
 
   {% if not current_user.is_authenticated and not search_query %}
-  <div style="background:linear-gradient(135deg,rgba(201,169,110,.12),rgba(201,169,110,.04));border:1px solid rgba(201,169,110,.25);border-radius:var(--radius);padding:36px 40px;margin-bottom:36px;text-align:center;">
-    <h2 style="font-size:1.8rem;font-weight:800;margin-bottom:12px;">Bienvenue sur <span style="color:var(--accent);">WeArt</span></h2>
-    <p style="color:var(--text2);font-size:1rem;max-width:600px;margin:0 auto 20px;line-height:1.7;">
-      WeArt est une plateforme pensée pour les artistes qui veulent <strong style="color:var(--text);">partager leur travail</strong>,
-      <strong style="color:var(--text);">se connecter avec d'autres créateurs</strong> et
-      <strong style="color:var(--text);">construire une communauté</strong> autour de leur art.
-      Expose tes œuvres, découvre des talents, collabore et grandis ensemble.
+
+  <!-- Hero -->
+  <div style="background:linear-gradient(135deg,rgba(201,169,110,.12),rgba(201,169,110,.04));border:1px solid rgba(201,169,110,.25);border-radius:var(--radius);padding:48px 40px 40px;margin-bottom:28px;text-align:center;">
+    <div style="font-size:2.8rem;margin-bottom:14px;">🎨</div>
+    <h2 style="font-size:2.2rem;font-weight:900;margin-bottom:16px;letter-spacing:-.5px;">Bienvenue sur <span style="color:var(--accent);">WeArt</span></h2>
+    <p style="color:var(--text2);font-size:1.05rem;max-width:640px;margin:0 auto 12px;line-height:1.8;">
+      WeArt est la plateforme tout-en-un pour les artistes de tous horizons — peintres, musiciens, photographes, vidéastes et bien plus.
+      Publie tes créations, construis ton portfolio professionnel, vends tes œuvres et connecte-toi avec une communauté de créateurs passionnés.
+    </p>
+    <p style="color:var(--text3);font-size:.9rem;max-width:520px;margin:0 auto 28px;line-height:1.7;">
+      Gratuit pour commencer. Aucune carte requise.
     </p>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-      <a href="{{ url_for('register') }}" class="btn btn-primary" style="padding:11px 28px;font-size:.95rem;">Rejoindre la communauté</a>
-      <a href="{{ url_for('login') }}" class="btn btn-ghost" style="padding:11px 28px;font-size:.95rem;">Se connecter</a>
+      <a href="{{ url_for('register') }}" class="btn btn-primary" style="padding:13px 32px;font-size:1rem;">Rejoindre la communauté</a>
+      <a href="{{ url_for('login') }}" class="btn btn-ghost" style="padding:13px 32px;font-size:1rem;">Se connecter</a>
     </div>
   </div>
+
+  <!-- Fonctionnalités -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:36px;">
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px 20px;text-align:center;">
+      <div style="font-size:2rem;margin-bottom:10px;">🖼️</div>
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:8px;">Portfolio personnel</h3>
+      <p style="font-size:.85rem;color:var(--text2);line-height:1.6;">
+        Crée ton espace dédié et présente tes œuvres sous la meilleure lumière. Images, audio, vidéo — tout est accepté.
+      </p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px 20px;text-align:center;">
+      <div style="font-size:2rem;margin-bottom:10px;">🛒</div>
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:8px;">Marketplace intégrée</h3>
+      <p style="font-size:.85rem;color:var(--text2);line-height:1.6;">
+        Mets tes œuvres en vente directement sur la plateforme. Paiement sécurisé via Stripe, sans intermédiaire.
+      </p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px 20px;text-align:center;">
+      <div style="font-size:2rem;margin-bottom:10px;">✨</div>
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:8px;">Studio IA</h3>
+      <p style="font-size:.85rem;color:var(--text2);line-height:1.6;">
+        Génère des visuels et de la musique grâce à l'intelligence artificielle. L'inspiration n'est plus jamais loin.
+      </p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px 20px;text-align:center;">
+      <div style="font-size:2rem;margin-bottom:10px;">💬</div>
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:8px;">Communauté & Messagerie</h3>
+      <p style="font-size:.85rem;color:var(--text2);line-height:1.6;">
+        Échange en privé avec d'autres artistes, reçois des likes, suis les créateurs qui t'inspirent.
+      </p>
+    </div>
+
+  </div>
+
   {% endif %}
 
   <h1 class="section-title">
