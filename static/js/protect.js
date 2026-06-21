@@ -1,8 +1,9 @@
 // Content protection — deters casual theft, not a security guarantee
 (function () {
-  // Disable right-click on protected media
+  // Disable right-click on protected media (not video/audio — their native controls must stay intact)
   document.addEventListener('contextmenu', function (e) {
     const t = e.target;
+    if (t.tagName === 'VIDEO' || t.tagName === 'AUDIO') return;
     if (t.closest('.media-wrapper') || t.closest('.artwork-media-frame') || t.tagName === 'IMG') {
       e.preventDefault();
     }

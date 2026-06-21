@@ -90,6 +90,11 @@
   pointer-events: none;
   user-select: none;
 }
+.artwork-media-frame video {
+  width: 100%;
+  display: block;
+  pointer-events: auto;
+}
 .artwork-media-frame .media-overlay { position: absolute; inset: 0; z-index: 2; }
 
 .artwork-sidebar { position: sticky; top: 80px; }
