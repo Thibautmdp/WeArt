@@ -286,8 +286,12 @@ def feed():
                                total_views=total_views,
                                make_token=make_media_token)
     else:
-        # Visiteur non connecté : redirection vers Explorer
-        return redirect(url_for('explore'))
+        # Visiteur non connecté : page d'accueil publique
+        recent_artworks = Artwork.query.filter_by(is_published=True)\
+            .order_by(Artwork.created_at.desc()).limit(8).all()
+        return render_template('home.html',
+                               recent_artworks=recent_artworks,
+                               make_token=make_media_token)
 
 
 @app.route('/explore')
