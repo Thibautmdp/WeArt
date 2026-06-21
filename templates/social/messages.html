@@ -8,6 +8,19 @@
 <div class="page" style="max-width:700px;">
   <h1 class="section-title">💬 Messages</h1>
 
+  <!-- Recherche d'artiste -->
+  <div style="position:relative;margin-bottom:24px;">
+    <div style="display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;">
+      <span style="font-size:1.1rem;color:var(--text3);">🔍</span>
+      <input id="msg-search-input" type="text" placeholder="Chercher un artiste pour lui envoyer un message…"
+             autocomplete="off"
+             style="flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:.95rem;">
+    </div>
+    <div id="msg-search-results"
+         style="display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:100;overflow:hidden;">
+    </div>
+  </div>
+
   {% if conversations %}
   <div style="display:flex;flex-direction:column;gap:10px;">
     {% for conv in conversations %}
@@ -48,4 +61,59 @@
   </div>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const input = document.getElementById('msg-search-input');
+  const results = document.getElementById('msg-search-results');
+  let timer = null;
+
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 2) { hide(); return; }
+    timer = setTimeout(() => search(q), 220);
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!input.contains(e.target) && !results.contains(e.target)) hide();
+  });
+
+  async function search(q) {
+    try {
+      const r = await fetch('/api/search/suggestions?q=' + encodeURIComponent(q));
+      const d = await r.json();
+      render(d.artists);
+    } catch (e) {}
+  }
+
+  function render(artists) {
+    results.innerHTML = '';
+    const filtered = artists.filter(a => a.username !== '{{ current_user.username }}');
+    if (!filtered.length) {
+      results.innerHTML = '<div style="padding:14px 16px;color:var(--text3);font-size:.88rem;">Aucun artiste trouvé</div>';
+      results.style.display = 'block';
+      return;
+    }
+    filtered.forEach(a => {
+      const el = document.createElement('a');
+      el.href = '/messages/' + a.username;
+      el.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 16px;text-decoration:none;color:var(--text);transition:background .15s;border-bottom:1px solid var(--border);';
+      el.innerHTML = '<span style="font-size:1.3rem;">👤</span>'
+        + '<div><div style="font-weight:600;font-size:.92rem;">' + esc(a.name) + '</div>'
+        + '<div style="font-size:.78rem;color:var(--text3);">@' + esc(a.username) + '</div></div>'
+        + '<span style="margin-left:auto;font-size:.8rem;color:var(--accent);font-weight:600;">Envoyer un message →</span>';
+      el.addEventListener('mouseenter', () => el.style.background = 'var(--bg3)');
+      el.addEventListener('mouseleave', () => el.style.background = '');
+      results.appendChild(el);
+    });
+    results.style.display = 'block';
+  }
+
+  function hide() { results.style.display = 'none'; }
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+})();
+</script>
 {% endblock %}
